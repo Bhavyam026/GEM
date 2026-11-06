@@ -27,10 +27,10 @@
 <div id="loginView" class="login-wrap"><form class="login" id="loginForm">
 <div class="brand"><span class="brand-mark">◎</span> SocialDesk <span class="demo-tag">DEMO</span></div>
 <h1>Your social workspace</h1><p class="muted">A private, Instagram-inspired demo dashboard.</p>
-<label class="field">Demo username<input id="username" autocomplete="username" placeholder="demo-admin" required></label>
+<label class="field">Demo username<input id="username" autocomplete="username" placeholder="Inst" required></label>
 <label class="field">Demo password<input id="password" type="password" autocomplete="current-password" placeholder="Enter demo password" required></label>
 <div id="loginError" class="error" role="alert"></div><button class="btn full" type="submit">Sign in to SocialDesk</button>
-<div class="demo-note"><b>Demo access</b><br>Username: <code>demo-admin</code><br>Password: <code>Demo@123</code><br><br>Fictional sample data only. This dashboard does not connect to Instagram, collect real passwords or OTPs, or control real accounts.</div>
+<div class="demo-note"><b>Demo access</b><br>Username: <code>Inst</code><br>Password: <code>asd1234</code><br><br>Fictional sample data only. This dashboard does not connect to Instagram, collect real passwords or OTPs, or control real accounts.</div>
 </form></div>
 <div id="appView" class="shell hidden">
 <aside class="sidebar">
@@ -85,7 +85,7 @@ document.querySelectorAll(".nav button[data-page]").forEach(b=>b.addEventListene
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.go)));
 function enter(){sessionStorage.setItem("sd-demo-auth","1");$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden");showPage("overview")}
 function logout(){sessionStorage.removeItem("sd-demo-auth");$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden");$("#password").value=""}
-$("#loginForm").addEventListener("submit",e=>{e.preventDefault();if($("#username").value.trim()==="demo-admin"&&$("#password").value==="Demo@123"){enter()}else{$("#loginError").textContent="Demo sign-in failed. Use the sample credentials shown below."}});
+$("#loginForm").addEventListener("submit",e=>{e.preventDefault();if($("#username").value.trim()==="Inst"&&$("#password").value==="asd1234"){enter()}else{$("#loginError").textContent="Demo sign-in failed. Use the sample credentials shown below."}});
 $("#logoutSide").onclick=logout;
 function renderPosts(){const q=($("#contentSearch").value||"").toLowerCase(),f=$("#contentFilter").value;const filtered=posts.filter(p=>(p.title+" "+p.desc).toLowerCase().includes(q)&&(f==="all"||p.status===f));$("#contentGrid").innerHTML=filtered.map((p,i)=>'<article class="content-card"><div class="post-art '+p.style+'">'+p.art+'</div><div class="content-meta"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h4>'+p.title+'</h4><span class="pill '+p.status.toLowerCase()+'">'+p.status+'</span></div><p>'+p.desc+'</p><p style="margin-top:8px">'+p.date+'</p><p style="margin-top:5px">♡ '+p.likes+' &nbsp; ◉ '+p.reach+'</p></div></article>').join("")||'<div class="empty">No matching content found.</div>'}
 $("#contentSearch").addEventListener("input",renderPosts);$("#contentFilter").addEventListener("change",renderPosts);
