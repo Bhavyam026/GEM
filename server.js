@@ -46,14 +46,26 @@ http.createServer((req, res) => {
     return res.end("Login required.");
   }
 
-  if (req.url !== "/" && req.url !== "/index.html") {
-    res.writeHead(404, { "Cache-Control": "no-store" });
-    return res.end("Not found");
+  const pathname = new URL(req.url, "http://localhost").pathname;
+
+  if (pathname === "/favicon.ico") {
+    res.writeHead(204, { "Cache-Control": "no-store" });
+    return res.end();
+  }
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { "Allow": "GET, HEAD", "Cache-Control": "no-store" });
+    return res.end("Method not allowed.");
+  }
+
+  if (pathname !== "/" && pathname !== "/index.html") {
+    res.writeHead(404, { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Not found.");
   }
 
   fs.readFile(indexPath, (err, data) => {
     if (err) {
-      res.writeHead(500);
+      res.writeHead(500, { "Cache-Control": "no-store" });
       return res.end("Dashboard file unavailable.");
     }
     res.writeHead(200, {
@@ -63,8 +75,9 @@ http.createServer((req, res) => {
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "no-referrer"
     });
+    if (req.method === "HEAD") return res.end();
     res.end(data);
   });
 }).listen(PORT, "0.0.0.0", () => {
-  console.log("Private dashboard server listening on port " + PORT);
+  console.log("Private SocialDesk dashboard listening on port " + PORT);
 });
