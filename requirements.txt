@@ -1,1 +1,1 @@
-playwright==1.55.0
+# Scanner uses Python standard library only.
