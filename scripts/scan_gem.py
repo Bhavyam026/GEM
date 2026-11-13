@@ -320,10 +320,6 @@ def scan_buyer(session, buyer_key, counters):
                 continue
 
             doc_text = json.dumps(doc, ensure_ascii=False)
-            # Full official buyer name is used as the search query; this second
-            # check prevents unrelated full-text matches from entering the feed.
-            if not buyer_matches(buyer_key, doc_text, fields["department"], fields["ministry"]):
-                continue
 
             try:
                 detail_html = session.detail(bid_id)
@@ -353,6 +349,10 @@ def scan_buyer(session, buyer_key, counters):
                 doc_text, fields["title"], fields["category_raw"],
                 fields["department"], fields["ministry"], detail_text, " ".join(pdf_texts),
             ]))
+            # Confirm the buyer against the full public detail/document text,
+            # not just the search result row (which may omit the organisation).
+            if not buyer_matches(buyer_key, doc_text, fields["department"], fields["ministry"], detail_text, " ".join(pdf_texts)):
+                continue
             category = category_for(combined)
             locations = location_matches(combined)
             if not category or not locations:
