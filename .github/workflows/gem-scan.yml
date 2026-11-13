@@ -32,8 +32,6 @@ jobs:
           python -m pip install -r requirements.txt
       - name: Run scanner unit tests
         run: python -m unittest discover -s tests -v
-      - name: Install Chromium browser
-        run: python -m playwright install chromium
       - name: Scan public GeM ongoing bids
         run: python scripts/scan_gem.py
       - name: Commit tender data and scan status
