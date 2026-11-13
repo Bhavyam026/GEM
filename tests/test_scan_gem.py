@@ -35,6 +35,7 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertTrue(buyer_matches("NPCIL", "Nuclear Power Corporation of India Limited"))
         self.assertTrue(buyer_matches("BARC", "Buyer: BARC"))
         self.assertFalse(buyer_matches("BARC", "Bharat Heavy Electricals Limited"))
+        self.assertFalse(buyer_matches("BARC", "", "BARC is mentioned in an unrelated technical specification"))
         self.assertTrue(buyer_matches("AEES", "Atomic Energy Education Society"))
 
     def test_categories_are_classified_from_bid_text(self):
