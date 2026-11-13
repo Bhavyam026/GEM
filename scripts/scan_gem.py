@@ -33,8 +33,8 @@ def category(text):
     return None
 def end_date(text):
     # Extract common visible GeM date formats; leave blank if ambiguous.
-    for pattern, fmt in ((r"\\b(\\d{2}[/-]\\d{2}[/-]\\d{4})\\b", None),
-                         (r"\\b(\\d{4}-\\d{2}-\\d{2})\\b", "%Y-%m-%d")):
+    for pattern, fmt in ((r"\b(\d{2}[/-]\d{2}[/-]\d{4})\b", None),
+                         (r"\b(\d{4}-\d{2}-\d{2})\b", "%Y-%m-%d")):
         m=re.search(pattern,text)
         if not m: continue
         value=m.group(1)
