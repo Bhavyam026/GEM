@@ -10,7 +10,7 @@ The collector searches these buyers one at a time using their full official name
 2. Bhabha Atomic Research Centre (BARC)
 3. Atomic Energy Education Society (AEES)
 
-No other buyers are retained. Categories are CCTV & surveillance, networking, electrical, fire safety and IT assets. A record must contain evidence for Mumbai, Palghar or Boisar (including relevant 400xxx/401xxx PIN codes) in the public bid/detail/document text.
+No other buyers are retained. Categories are CCTV & surveillance, networking, electrical, fire safety and IT assets. A record must contain evidence for Mumbai, Palghar or Boisar (including Mumbai city/suburb PIN codes and 401xxx Palghar-district PIN codes) in the public bid/detail/document text.
 
 The collector paginates each buyer search through the portal-reported result count. An unexpectedly empty page, page safety-limit breach, network error, portal markup change or access challenge marks the scan incomplete. Incomplete scans preserve the previous tender data rather than publishing a partial result.
 
