@@ -11,12 +11,9 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 try:
- try:
- from scripts.pdf_extract import extract_detail_documents
+    from scripts.pdf_extract import extract_detail_documents
 except ModuleNotFoundError:
- from pdf_extract import extract_detail_documents
-except ModuleNotFoundError:
- from pdf_extract import extract_detail_documents
+    from pdf_extract import extract_detail_documents
 
 ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/"data"
