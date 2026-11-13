@@ -112,7 +112,29 @@ def main():
         browser=p.chromium.launch(headless=True)
         page=browser.new_page(locale="en-IN")
         try:
-            page.goto(URL,wait_until="domcontentloaded",timeout=90000)
+            # Retry ordinary network failures; never bypass CAPTCHA or access controls.
+            navigation_error = None
+            for attempt in range(1, 4):
+                try:
+                    page.goto(URL, wait_until="domcontentloaded", timeout=90000)
+                    navigation_error = None
+                    break
+                except Exception as exc:
+                    navigation_error = exc
+                    if attempt < 3:
+                        wait_seconds = attempt * 10
+                        print(f"GeM connection attempt {attempt}/3 failed; retrying in {wait_seconds}s: {exc}")
+                        page.wait_for_timeout(wait_seconds * 1000)
+            if navigation_error is not None:
+                status = {
+                    "last_scan_success": False,
+                    "last_scan_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
+                    "pages_scanned": 0, "records_seen": 0, "matches_saved": 0,
+                    "warning": "GeM portal unreachable after 3 attempts; existing tender data preserved. " + str(navigation_error)[:300]
+                }
+                (DATA/"status.json").write_text(json.dumps(status, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+                print(json.dumps(status, indent=2))
+                sys.exit(2)
             page.wait_for_timeout(5000)
             if is_challenge(page):
                 raise RuntimeError("GeM displayed a CAPTCHA, login, or access challenge. No bypass attempted; manual review required.")
