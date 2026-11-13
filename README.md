@@ -1,38 +1,51 @@
 # GeM Mumbai–Palghar Tender Tracker
 
-A public dashboard and scheduled collector for **ongoing GeM bids** relevant to Mumbai and Palghar.
+A public dashboard and scheduled collector for ongoing GeM bids relevant to Mumbai, Palghar and Boisar.
 
-## Scope
-- Geography: Mumbai, Palghar, and Boisar. A result is retained when its visible bid row/detail contains one of these locations (including relevant PIN codes). A result is retained only when its visible bid row/detail contains Mumbai or Palghar.
-- Categories: CCTV & surveillance, networking, electrical, fire safety, and IT assets.
-- Priority buyer labels: NPCIL, BARC, and AEES. Other matching buyers are included too.
-- Pages: collector follows the portal's visible Next control, with a safety cap.
-- Schedule: Monday–Saturday, every hour from 9:00 AM to 6:00 PM IST (GitHub Actions UTC cron).
+## Strict search scope
+
+The collector searches these buyers one at a time using their full official names, and rejects records unless the buyer is confirmed in public bid/detail/document text:
+
+1. Nuclear Power Corporation of India Limited (NPCIL)
+2. Bhabha Atomic Research Centre (BARC)
+3. Atomic Energy Education Society (AEES)
+
+No other buyers are retained. Categories are CCTV & surveillance, networking, electrical, fire safety and IT assets. A record must contain evidence for Mumbai, Palghar or Boisar (including relevant 400xxx/401xxx PIN codes) in the public bid/detail/document text.
+
+The collector paginates each buyer search through the portal-reported result count. An unexpectedly empty page, page safety-limit breach, network error, portal markup change or access challenge marks the scan incomplete. Incomplete scans preserve the previous tender data rather than publishing a partial result.
+
+## PDF handling
+
+- A PDF link is published only if it is hosted on the official `bidplus.gem.gov.in` domain and the downloaded response begins with the PDF file signature.
+- PDF text is extracted with pypdf. Scanned/image-only PDFs are flagged for manual review; OCR is not silently assumed.
+- Third-party listing/document URLs are never labelled as verified GeM PDFs.
+- Secondary-source candidates may remain visible with a clear pending-verification label until an official scan confirms them.
 
 ## Dashboard
+
 The static dashboard reads `data/tenders.json` and `data/status.json`. Enable GitHub Pages from **Settings → Pages → Deploy from a branch → main → /(root)**, or use the included Pages workflow.
 
-## Collector
-The GitHub Actions workflow installs Playwright Chromium, opens the public GeM Advanced Search page, reads visible result rows, follows pagination, filters the rows, and commits updated JSON.
+## Schedule
 
-### Important operational limits
-- GeM's Advanced Search currently exposes ongoing bids; this is not an archive of all historical tenders.
-- The portal can change its markup, become unavailable, rate-limit requests, or present CAPTCHA/login controls. The collector does **not** bypass CAPTCHA, OTP, login, or other access controls. A challenge is recorded as a failed scan for manual review.
-- A first successful workflow run is required to validate the live portal's current result-page structure. Do not represent the dashboard as fully validated until that run completes and its collected rows are checked.
-- Matching is based on information visible in the public result rows. If GeM hides the delivery/consignee location until opening a bid detail, that record may need a later detail-page adapter.
-- GitHub Actions scheduled runs are best-effort and may be delayed by GitHub.
+Monday–Saturday, hourly from 9:00 AM through 6:00 PM IST. GitHub Actions cron:
 
-## Run locally
-Python 3.11+
-```bash
-pip install -r requirements.txt
-playwright install chromium
-python scripts/scan_gem.py
+```cron
+30 3-12 * * 1-6
 ```
 
-## Schedule
-`30 3-12 * * 1-6` UTC = 9:00 AM–6:00 PM IST, Monday–Saturday.
+GitHub scheduled runs are best-effort and can be delayed. The runner needs network access to GeM's public BidPlus host. If GeM refuses or blocks the runner's connection, code cannot safely bypass that restriction; the dashboard will show a failed scan and preserve the previous data.
 
-## Data
-- `data/tenders.json`: deduplicated current matches keyed by GeM bid number (or a stable URL/title fallback).
-- `data/status.json`: last scan status, timestamp, page count, and warnings.
+## Run locally
+
+Python 3.11+:
+
+```bash
+pip install -r requirements.txt
+python scripts/scan_gem.py
+python -m unittest discover -s tests -v
+```
+
+## Data files
+
+- `data/tenders.json`: deduplicated tender records.
+- `data/status.json`: last scan result, timestamp, page counts and warnings.
