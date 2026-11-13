@@ -11,7 +11,10 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 try:
+ try:
  from scripts.pdf_extract import extract_detail_documents
+except ModuleNotFoundError:
+ from pdf_extract import extract_detail_documents
 except ModuleNotFoundError:
  from pdf_extract import extract_detail_documents
 
