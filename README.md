@@ -3,7 +3,7 @@
 A public dashboard and scheduled collector for **ongoing GeM bids** relevant to Mumbai and Palghar.
 
 ## Scope
-- Geography: Mumbai and Palghar only. A result is retained only when its visible bid row/detail contains Mumbai or Palghar.
+- Geography: Mumbai, Palghar, and Boisar. A result is retained when its visible bid row/detail contains one of these locations (including relevant PIN codes). A result is retained only when its visible bid row/detail contains Mumbai or Palghar.
 - Categories: CCTV & surveillance, networking, electrical, fire safety, and IT assets.
 - Priority buyer labels: NPCIL, BARC, and AEES. Other matching buyers are included too.
 - Pages: collector follows the portal's visible Next control, with a safety cap.
