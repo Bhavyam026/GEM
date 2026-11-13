@@ -39,8 +39,6 @@ def extract_detail_documents(html: str, detail_url: str, session) -> tuple[list[
     errors = []
     for url in parser.links[:5]:
         try:
-            raw = session.request(url, headers={"Accept": "application/pdf,*/*"})
-            # urllib wrapper returns decoded text; use binary request method for PDFs.
             data = session.request_bytes(url, headers={"Accept": "application/pdf,*/*"})
             if data[:4] != b"%PDF":
                 continue
