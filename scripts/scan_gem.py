@@ -29,7 +29,7 @@ def now_ist(): return datetime.now(IST)
 def clean(s): return re.sub(r"\s+", " ", s or "").strip()
 def normalize_bid_number(value):
     value = clean(value).upper()
-    return re.sub(r"\\s+", "", value)
+    return re.sub(r"\s+", "", value)
 
 def canonical_url(value):
     value = clean(value)
