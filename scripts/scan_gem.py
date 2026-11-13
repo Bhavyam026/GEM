@@ -334,6 +334,7 @@ def scan_buyer(session, buyer_key, counters):
                     detail_html, BASE + "/showbidDocument/" + bid_id, session
                 )
                 counters["pdfs_checked"] += len(pdf_urls)
+                time.sleep(REQUEST_DELAY)
                 if pdf_errors:
                     counters["warnings"].extend(pdf_errors[:2])
             except AccessChallengeError:
@@ -379,8 +380,12 @@ def scan_buyer(session, buyer_key, counters):
             records[key] = record
             time.sleep(REQUEST_DELAY)
 
-        if page * 10 >= total or len(docs) < 10:
+        if page * 10 >= total:
             break
+        if len(docs) < 10:
+            raise RuntimeError(
+                f"{buyer_key}: only {len(docs)} records on page {page} while total={total}; refusing an incomplete scan"
+            )
         page += 1
         time.sleep(REQUEST_DELAY)
     return records
