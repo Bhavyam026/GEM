@@ -8,12 +8,14 @@
     "bid_end_date": "2026-11-19T11:00:00+05:30",
     "first_seen": "2026-11-13",
     "is_priority": true,
-    "is_new": true,
+    "is_new": false,
     "url": "https://tenders.infralens.in/gem/cctv-camera-8174356",
     "source_url": "https://tenders.infralens.in/gem/cctv-camera-8174356",
     "verification_status": "Pending GeM Verification",
     "raw_text": "Secondary tender listing reports 10 IP cameras for NPCIL; delivery at Tarapur Maharashtra Site, PO TAPP, via Boisar, District Palghar 401504. GeM official portal could not be reached during verification.",
-    "pdf_url": "https://avsar.app/tender/gem-2026-b-8174356/doc/cmw69zn0360uerdspmshardsp"
+    "source_type": "Secondary listing",
+    "pdf_status": "Not verified on official GeM portal",
+    "buyer_code": "NPCIL"
   },
   {
     "bid_number": "GEM/2026/B/8058810",
@@ -24,11 +26,14 @@
     "bid_end_date": "2026-11-30",
     "first_seen": "2026-11-13",
     "is_priority": true,
-    "is_new": true,
+    "is_new": false,
     "url": "https://tenders.infralens.in/gem/lighting-fixture-8058810",
     "source_url": "https://tenders.infralens.in/gem/lighting-fixture-8058810",
     "verification_status": "Pending GeM Verification",
-    "raw_text": "Secondary tender listing reports lighting fixtures for NPCIL with delivery in District Palghar 401504. Exact consignee/site details and live status require confirmation on GeM."
+    "raw_text": "Secondary tender listing reports lighting fixtures for NPCIL with delivery in District Palghar 401504. Exact consignee/site details and live status require confirmation on GeM.",
+    "source_type": "Secondary listing",
+    "pdf_status": "Not verified on official GeM portal",
+    "buyer_code": "NPCIL"
   },
   {
     "bid_number": "GEM/2026/B/7960269",
@@ -39,12 +44,14 @@
     "bid_end_date": "2026-11-17T16:00:00+05:30",
     "first_seen": "2026-11-13",
     "is_priority": true,
-    "is_new": true,
+    "is_new": false,
     "url": "https://tenders.infralens.in/gem/amc-of-cctv-systems-7960269",
     "source_url": "https://tenders.infralens.in/gem/amc-of-cctv-systems-7960269",
     "verification_status": "Pending GeM Verification",
     "raw_text": "Secondary tender listing reports AMC for 339 CCTV units at BARC Hospital, Anushakti Nagar, Mumbai; contract period 3 years. Official GeM details/PDF not yet verified.",
-    "pdf_url": "https://avsar.app/tender/gem-2026-b-7960269/doc/cmvu9l8x24togya0wgff4ya0w"
+    "source_type": "Secondary listing",
+    "pdf_status": "Not verified on official GeM portal",
+    "buyer_code": "BARC"
   },
   {
     "bid_number": "GEM/2026/B/8219971",
@@ -55,11 +62,13 @@
     "bid_end_date": "2026-11-26",
     "first_seen": "2026-11-13",
     "is_priority": true,
-    "is_new": true,
+    "is_new": false,
     "url": "https://tenders.infralens.in/gem/facility-management-and-o-m-of-electrical-work-8219971",
     "source_url": "https://tenders.infralens.in/gem/facility-management-and-o-m-of-electrical-work-8219971",
     "verification_status": "Pending GeM Verification",
     "raw_text": "Secondary tender listing reports facility management and O&M of electrical work at BARC Mumbai. Exact consignee/site and official GeM bid documents need confirmation.",
-    "pdf_url": "https://avsar.app/tender/gem-2026-b-8219971/doc/cmw4nd9l1cixb9siskmes9sis"
+    "source_type": "Secondary listing",
+    "pdf_status": "Not verified on official GeM portal",
+    "buyer_code": "BARC"
   }
 ]
