@@ -15,7 +15,8 @@
     "raw_text": "Secondary tender listing reports 10 IP cameras for NPCIL; delivery at Tarapur Maharashtra Site, PO TAPP, via Boisar, District Palghar 401504. GeM official portal could not be reached during verification.",
     "source_type": "Secondary listing",
     "pdf_status": "Not verified on official GeM portal",
-    "buyer_code": "NPCIL"
+    "buyer_code": "NPCIL",
+    "documents_url": "https://avsar.app/tender/gem-2026-b-8174356"
   },
   {
     "bid_number": "GEM/2026/B/8058810",
@@ -33,7 +34,8 @@
     "raw_text": "Secondary tender listing reports lighting fixtures for NPCIL with delivery in District Palghar 401504. Exact consignee/site details and live status require confirmation on GeM.",
     "source_type": "Secondary listing",
     "pdf_status": "Not verified on official GeM portal",
-    "buyer_code": "NPCIL"
+    "buyer_code": "NPCIL",
+    "documents_url": "https://www.tenderdetail.com/Indian-Tenders/TenderNotice/58435883/dcab7ea18b25bd6988852573de12bb50"
   },
   {
     "bid_number": "GEM/2026/B/7960269",
@@ -51,13 +53,14 @@
     "raw_text": "Secondary tender listing reports AMC for 339 CCTV units at BARC Hospital, Anushakti Nagar, Mumbai; contract period 3 years. Official GeM details/PDF not yet verified.",
     "source_type": "Secondary listing",
     "pdf_status": "Not verified on official GeM portal",
-    "buyer_code": "BARC"
+    "buyer_code": "BARC",
+    "documents_url": "https://avsar.app/tender/gem-2026-b-7960269"
   },
   {
     "bid_number": "GEM/2026/B/8219971",
     "title": "Facility management and O&M of electrical work at BARC Mumbai",
     "buyer": "BARC — Bhabha Atomic Research Centre",
-    "location": "BARC, Mumbai",
+    "location": "NRB, BARC, Tarapur, Ghivali (PO), Palghar 401502",
     "category": "Electrical",
     "bid_end_date": "2026-11-26",
     "first_seen": "2026-11-13",
@@ -66,9 +69,10 @@
     "url": "https://tenders.infralens.in/gem/facility-management-and-o-m-of-electrical-work-8219971",
     "source_url": "https://tenders.infralens.in/gem/facility-management-and-o-m-of-electrical-work-8219971",
     "verification_status": "Pending GeM Verification",
-    "raw_text": "Secondary tender listing reports facility management and O&M of electrical work at BARC Mumbai. Exact consignee/site and official GeM bid documents need confirmation.",
+    "raw_text": "Secondary tender listing identifies NRB, BARC, Tarapur, Ghivali (PO), Palghar 401502; direct GeM PDF link still requires verification.",
     "source_type": "Secondary listing",
     "pdf_status": "Not verified on official GeM portal",
-    "buyer_code": "BARC"
+    "buyer_code": "BARC",
+    "documents_url": "https://avsar.app/tender/gem-2026-b-8219971"
   }
 ]
