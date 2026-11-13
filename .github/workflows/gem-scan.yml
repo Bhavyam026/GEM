@@ -1,5 +1,10 @@
 name: GeM Mumbai-Palghar scan
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gem-scan.yml"
+      - "scripts/scan_gem.py"
   workflow_dispatch:
   schedule:
     # 09:00 to 18:00 IST = 03:30 to 12:30 UTC, Monday-Saturday
