@@ -51,6 +51,7 @@ BUYERS = {
 }
 
 SEARCH_TERMS = {
+    "AMC & Maintenance": ("Annual Maintenance Contract", "Annual Maintenance", "AMC", "Comprehensive Annual Maintenance", "Comprehensive Maintenance Contract", "CAMC", "CMC", "Operation and Maintenance", "O&M", "Maintenance Services", "Maintenance Contract"),
     "CCTV & Surveillance": ("CCTV", "NVR", "DVR", "IP Camera", "Video Surveillance", "Surveillance Camera"),
     "Networking": ("Networking", "LAN Switch", "Router", "Optical Fiber", "Network Switch", "Firewall"),
     "Electrical": ("Electrical Panel", "PLC SCADA", "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture"),
