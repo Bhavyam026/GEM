@@ -46,7 +46,7 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(category_for("Fire alarm and smoke detector"), "Fire Safety")
         self.assertEqual(category_for("unrelated stationery"), "")
 
-    def test_location_matching_includes_bo isar_and_pin_codes(self):
+    def test_location_matching_includes_boisar_and_pin_codes(self):
         self.assertEqual(location_matches("Delivery at Tarapur Site, Boisar, Palghar 401504"),
                          ["Palghar", "Boisar"])
         self.assertEqual(location_matches("Mumbai 400094"), ["Mumbai"])
