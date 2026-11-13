@@ -1,1 +1,1 @@
-# Scanner uses Python standard library only.
+pypdf>=5.0,<7
