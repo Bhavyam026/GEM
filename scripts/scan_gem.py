@@ -132,16 +132,30 @@ def doc_fields(doc):
     }
 
 
-def buyer_matches(buyer_key, *sources):
-    haystack = " ".join(clean(source) for source in sources if source)
-    normalized_haystack = normalize(haystack)
-    for alias in BUYERS[buyer_key]["aliases"]:
-        alias_normalized = normalize(alias)
-        if alias_normalized and alias_normalized in normalized_haystack:
-            return True
-    # Acronyms must be standalone tokens, not substrings of unrelated words.
+def buyer_field_text(doc, fields):
+    values = [fields.get("department", ""), fields.get("ministry", "")]
+    for key, value in doc.items():
+        key_low = key.lower()
+        if any(marker in key_low for marker in ("org", "buyer", "agency", "purchaser")):
+            if isinstance(value, list):
+                values.extend(value)
+            else:
+                values.append(value)
+    return clean(" ".join(clean(value) for value in values if value))
+
+
+def buyer_matches(buyer_key, buyer_fields, *detail_sources):
+    all_text = " ".join(clean(source) for source in (buyer_fields, *detail_sources) if source)
+    full_name = normalize(BUYERS[buyer_key]["name"])
+    if full_name and full_name in normalize(all_text):
+        return True
+    # Accept an acronym only from explicit buyer/organisation fields, never
+    # merely because it appears somewhere in a technical specification.
     acronym = buyer_key
-    return bool(re.search(r"(?<![A-Za-z0-9])" + re.escape(acronym) + r"(?![A-Za-z0-9])", haystack, re.I))
+    return bool(re.search(
+        r"(?<![A-Za-z0-9])" + re.escape(acronym) + r"(?![A-Za-z0-9])",
+        clean(buyer_fields), re.I
+    ))
 
 
 def category_for(text):
@@ -334,7 +348,6 @@ def scan_buyer(session, buyer_key, counters):
                     detail_html, BASE + "/showbidDocument/" + bid_id, session
                 )
                 counters["pdfs_checked"] += len(pdf_urls)
-                time.sleep(REQUEST_DELAY)
                 if pdf_errors:
                     counters["warnings"].extend(pdf_errors[:2])
             except AccessChallengeError:
@@ -345,6 +358,8 @@ def scan_buyer(session, buyer_key, counters):
                 )
                 detail_text = ""
                 pdf_texts, pdf_urls = [], []
+            finally:
+                time.sleep(REQUEST_DELAY)
 
             combined = clean(" ".join([
                 doc_text, fields["title"], fields["category_raw"],
@@ -352,7 +367,7 @@ def scan_buyer(session, buyer_key, counters):
             ]))
             # Confirm the buyer against the full public detail/document text,
             # not just the search result row (which may omit the organisation).
-            if not buyer_matches(buyer_key, doc_text, fields["department"], fields["ministry"], detail_text, " ".join(pdf_texts)):
+            if not buyer_matches(buyer_key, buyer_field_text(doc, fields), detail_text, " ".join(pdf_texts)):
                 continue
             category = category_for(combined)
             locations = location_matches(combined)
