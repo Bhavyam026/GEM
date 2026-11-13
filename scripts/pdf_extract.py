@@ -9,16 +9,30 @@ class TenderLinks(HTMLParser):
         super().__init__()
         self.base_url = base_url
         self.links: list[str] = []
+        self.current_href = ""
+        self.current_text = ""
+    def _add(self, href):
+        full = urljoin(self.base_url, href)
+        if full.startswith("https://bidplus.gem.gov.in/") and full not in self.links:
+            self.links.append(full)
+    def handle_data(self, data):
+        self.current_text += " " + data
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self.current_href and any(x in self.current_text.lower() for x in ("download", "document", "pdf")):
+            self._add(self.current_href)
+        if tag.lower() == "a":
+            self.current_href = ""
+            self.current_text = ""
     def handle_starttag(self, tag, attrs):
         if tag.lower() != "a":
             return
         attrs = dict(attrs)
         href = attrs.get("href", "")
         label = (attrs.get("title", "") + " " + attrs.get("class", "")).lower()
+        self.current_href = href
+        self.current_text = ""
         if href and (".pdf" in href.lower() or "document" in label or "download" in label):
-            full = urljoin(self.base_url, href)
-            if full.startswith("https://bidplus.gem.gov.in/") and full not in self.links:
-                self.links.append(full)
+            self._add(href)
 
 def extract_pdf_text(content: bytes) -> str:
     """Extract selectable text; OCR is deliberately not attempted in this free runner."""
