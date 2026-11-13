@@ -5,6 +5,8 @@ on:
     paths:
       - ".github/workflows/gem-scan.yml"
       - "scripts/scan_gem.py"
+      - "tests/test_scan_gem.py"
+      - "requirements.txt"
   workflow_dispatch:
   schedule:
     # 09:00 to 18:00 IST = 03:30 to 12:30 UTC, Monday-Saturday
@@ -13,7 +15,7 @@ permissions:
   contents: write
 concurrency:
   group: gem-tender-scan
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   scan:
     runs-on: ubuntu-24.04
@@ -26,10 +28,6 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
       - name: Run scanner unit tests
         run: python -m unittest discover -s tests -v
       - name: Scan public GeM ongoing bids
