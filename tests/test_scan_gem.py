@@ -39,6 +39,8 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertTrue(buyer_matches("AEES", "Atomic Energy Education Society"))
 
     def test_categories_are_classified_from_bid_text(self):
+        self.assertEqual(category_for("Annual Maintenance Contract for CCTV systems"), "AMC & Maintenance")
+        self.assertEqual(category_for("Comprehensive Maintenance Contract for network equipment"), "AMC & Maintenance")
         self.assertEqual(category_for("Supply of IP CCTV cameras"), "CCTV & Surveillance")
         self.assertEqual(category_for("Supply of LAN Switches"), "Networking")
         self.assertEqual(category_for("Fire alarm and smoke detector"), "Fire Safety")
