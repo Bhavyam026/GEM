@@ -219,7 +219,6 @@ def main():
      else:item["first_seen"]=now_ist().isoformat();item["is_new"]=True
      found[key]=item
      time.sleep(0.25)
-    if len(docs_seen)>=total and page*10>=total:break
     if len(docs)<10 or page*10>=total:break
     page+=1;time.sleep(0.35)
   # Only publish a successful complete keyword sweep; preserve old data on failures.
