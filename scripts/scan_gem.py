@@ -154,6 +154,7 @@ def main():
      matched_locs=[]
      if "mumbai" in low or re.search(r"\b400\d{3}\b",low):matched_locs.append("Mumbai")
      if "palghar" in low or re.search(r"\b401\d{3}\b",low):matched_locs.append("Palghar")
+     if re.search(r"\bboisar\b",low):matched_locs.append("Boisar")
      if not matched_locs:continue
      org=next((p for p in PRIORITY if p in low),None)
      end=date_value(f["end"])
