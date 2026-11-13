@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/gem-scan.yml"
       - "scripts/scan_gem.py"
+      - "scripts/pdf_extract.py"
       - "tests/test_scan_gem.py"
       - "requirements.txt"
   workflow_dispatch:
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
