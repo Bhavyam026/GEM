@@ -169,7 +169,7 @@ def category_for(text):
 def location_matches(text):
     low = clean(text).lower()
     matches = []
-    if re.search(r"\bmumbai\b|\b400\d{3}\b", low):
+    if re.search(r"\bmumbai\b|\b400[01]\d{2}\b", low):
         matches.append("Mumbai")
     if re.search(r"\bpalghar\b|\b401\d{3}\b", low):
         matches.append("Palghar")
