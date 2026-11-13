@@ -48,6 +48,7 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(location_matches("Delivery at Tarapur Site, Boisar, Palghar 401504"),
                          ["Palghar", "Boisar"])
         self.assertEqual(location_matches("Mumbai 400094"), ["Mumbai"])
+        self.assertEqual(location_matches("Thane 400601"), [])
         self.assertEqual(location_matches("Chennai 600001"), [])
 
 
