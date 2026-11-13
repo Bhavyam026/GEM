@@ -1,8 +1,9 @@
 {
   "last_scan_success": false,
-  "last_scan_ist": "13-Nov-2026 02:47:25 PM IST",
+  "last_scan_ist": "13-Nov-2026 02:51:59 PM IST",
   "pages_scanned": 0,
   "records_seen": 0,
+  "details_checked": 0,
   "matches_saved": 0,
-  "warning": "GeM portal unreachable after 3 attempts; existing tender data preserved. Page.goto: net::ERR_CONNECTION_REFUSED at https://bidplus.gem.gov.in/advance-search\nCall log:\n  - navigating to \"https://bidplus.gem.gov.in/advance-search\", waiting until \"domcontentloaded\"\n"
+  "warning": "GeM public search failed; previous tender data preserved. <urlopen error [Errno 111] Connection refused>"
 }
