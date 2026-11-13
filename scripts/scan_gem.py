@@ -31,6 +31,20 @@ def category(text):
     for name, words in KEYWORDS.items():
         if any(w in t for w in words): return name
     return None
+def end_date(text):
+    # Extract common visible GeM date formats; leave blank if ambiguous.
+    for pattern, fmt in ((r"\\b(\\d{2}[/-]\\d{2}[/-]\\d{4})\\b", None),
+                         (r"\\b(\\d{4}-\\d{2}-\\d{2})\\b", "%Y-%m-%d")):
+        m=re.search(pattern,text)
+        if not m: continue
+        value=m.group(1)
+        try:
+            if fmt: return datetime.strptime(value,fmt).date().isoformat()
+            sep="/" if "/" in value else "-"
+            return datetime.strptime(value,f"%d{sep}%m{sep}%Y").date().isoformat()
+        except ValueError: pass
+    return ""
+
 def bid_no(text):
     patterns=(r"\bGEM/\d{4}/B/\d+\b", r"\bGEMC-\d+\b", r"\b\d{10,}\b")
     for p in patterns:
@@ -85,7 +99,7 @@ def parse_row(row):
     return {"id":number or row.get("url") or str(abs(hash(raw))),"bid_number":number,"title":title,
             "buyer":next((label for label in ("NPCIL","BARC","AEES") if label.lower() in low), ""),
             "location":"Mumbai" if "mumbai" in low else "Palghar",
-            "category":cat,"bid_end_date":"","url":row.get("url") or URL,
+            "category":cat,"bid_end_date":end_date(raw),"url":row.get("url") or URL,
             "is_priority":bool(org),"is_new":False,"raw_text":raw}
 def main():
     DATA.mkdir(exist_ok=True)
@@ -133,6 +147,7 @@ def main():
     # Keep prior records that may have fallen off the ongoing-bids first pages;
     # do not silently delete potentially active records during transient portal gaps.
     merged={x.get("id"):x for x in old if x.get("id")}
+    for record in merged.values(): record["is_new"]=False
     merged.update(seen)
     output=sorted(merged.values(),key=lambda x:(not x.get("is_priority",False),x.get("bid_end_date") or "9999",x.get("title","")))
     (DATA/"tenders.json").write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
