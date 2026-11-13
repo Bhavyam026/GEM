@@ -63,174 +63,184 @@ def dedupe_records(records):
             unique[key]["id"] = key
     return unique
 
-def category(text):
-    t=text.lower()
-    for name, words in KEYWORDS.items():
-        if any(w in t for w in words): return name
-    return None
-def end_date(text):
-    # Extract common visible GeM date formats; leave blank if ambiguous.
-    for pattern, fmt in ((r"\b(\d{2}[/-]\d{2}[/-]\d{4})\b", None),
-                         (r"\b(\d{4}-\d{2}-\d{2})\b", "%Y-%m-%d")):
-        m=re.search(pattern,text)
-        if not m: continue
-        value=m.group(1)
-        try:
-            if fmt: return datetime.strptime(value,fmt).date().isoformat()
-            sep="/" if "/" in value else "-"
-            return datetime.strptime(value,f"%d{sep}%m{sep}%Y").date().isoformat()
-        except ValueError: pass
-    return ""
+#!/usr/bin/env python3
+"""Cloud-only public GeM BidPlus collector. Never bypasses CAPTCHA/login/access controls."""
+from __future__ import annotations
+import hashlib, json, re, sys, time
+from html.parser import HTMLParser
+from urllib.parse import urlencode, urlsplit, urlunsplit
+from urllib.request import Request, HTTPCookieProcessor, build_opener
+from urllib.error import HTTPError, URLError
+from http.cookiejar import CookieJar
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-def bid_no(text):
-    patterns=(r"\bGEM/\d{4}/B/\d+\b", r"\bGEMC-\d+\b", r"\b\d{10,}\b")
-    for p in patterns:
-        m=re.search(p,text,re.I)
-        if m: return m.group(0)
-    return ""
-def extract_rows(page):
-    rows=[]
-    # Prefer tabular result rows; avoid collecting navigation/footer text.
-    for table in page.locator("table").all():
-        for tr in table.locator("tr").all():
-            try:
-                txt=clean(tr.inner_text(timeout=1500))
-                if len(txt)>35 and re.search(r"\b(GEM/|GEMC-|bid|tender)\b",txt,re.I):
-                    href=""
-                    links=tr.locator("a[href]")
-                    if links.count():
-                        href=links.first.get_attribute("href") or ""
-                        if href.startswith("/"): href="https://bidplus.gem.gov.in"+href
-                    rows.append({"raw":txt,"url":href})
-            except Exception: pass
-    return rows
-def is_challenge(page):
-    try: text=page.locator("body").inner_text(timeout=3000).lower()
-    except Exception: return False
-    return any(x in text for x in ("verify you are human","captcha","security check","access denied","otp verification"))
-def next_page(page):
-    # Only use a visible, enabled next control; do not guess page URLs.
-    candidates = [
-        page.get_by_role("link", name=re.compile(r"^next\b|^›$|^»$", re.I)),
-        page.get_by_role("button", name=re.compile(r"^next\b|^›$|^»$", re.I)),
-        page.locator("a[rel=next],button[aria-label*=Next i],a[aria-label*=Next i]")
-    ]
-    for loc in candidates:
-        try:
-            for i in range(min(loc.count(),3)):
-                el=loc.nth(i)
-                if el.is_visible() and el.is_enabled():
-                    label=clean((el.inner_text(timeout=500) or "")+" "+(el.get_attribute("class") or ""))
-                    if "disabled" in label.lower(): continue
-                    return el
-        except Exception: pass
-    return None
-def parse_row(row):
-    raw=row["raw"]; low=raw.lower()
-    cat=category(raw)
-    if not cat or not any(x in low for x in LOCATIONS): return None
-    org=next((x for x in PRIORITY if x in low),None)
-    number=bid_no(raw)
-    # Preserve full row text because portal column labels/layout can vary.
-    title=raw[:240]
-    return {"id":record_key({"bid_number":number,"url":row.get("url"),"raw_text":raw}),"bid_number":number,"title":title,
-            "buyer":next((label for label in ("NPCIL","BARC","AEES") if label.lower() in low), ""),
-            "location":"Mumbai" if "mumbai" in low else "Palghar",
-            "category":cat,"bid_end_date":end_date(raw),"url":row.get("url") or URL,
-            "is_priority":bool(org),"is_new":False,"raw_text":raw}
+ROOT=Path(__file__).resolve().parents[1]
+DATA=ROOT/"data"
+BASE="https://bidplus.gem.gov.in"
+ALL_BIDS=BASE+"/all-bids"
+SEARCH_API=BASE+"/all-bids-data"
+IST=ZoneInfo("Asia/Kolkata")
+PRIORITY=("nuclear power corporation","npcil","bhabha atomic research","barc","atomic energy education","aees")
+SEARCH_TERMS={
+ "CCTV & Surveillance":("CCTV","NVR","DVR","IP Camera","Video Surveillance"),
+ "Networking":("Networking","LAN Switch","Router","Optical Fiber","Network Switch"),
+ "Electrical":("Electrical Panel","PLC SCADA","Electrical Cable","Earthing","Electrical Wiring"),
+ "Fire Safety":("Fire Alarm","Fire Safety","Fire Extinguisher","Smoke Detector"),
+ "IT Assets":("Desktop Computer","Laptop","Computer Monitor","Printer","IT Equipment"),
+}
+LOCATIONS=("mumbai","palghar","401","400")
+def now_ist(): return datetime.now(IST)
+def clean(s): return re.sub(r"\s+"," ",s or "").strip()
+def normalize_bid_number(value): return re.sub(r"\s+","",clean(value).upper())
+def canonical_url(value):
+ value=clean(value)
+ if not value:return ""
+ p=urlsplit(value)
+ return urlunsplit((p.scheme.lower(),p.netloc.lower(),p.path.rstrip("/"),"",""))
+def record_key(record):
+ n=normalize_bid_number(record.get("bid_number",""))
+ if n:return "bid:"+n
+ u=canonical_url(record.get("url",""))
+ if u:return "url:"+u
+ return "text:"+hashlib.sha256(clean(record.get("raw_text","")).encode()).hexdigest()
+def dedupe_records(records):
+ out={}
+ for rec in records:
+  if not isinstance(rec,dict):continue
+  k=record_key(rec)
+  if k in out:
+   first=out[k].get("first_seen") or rec.get("first_seen")
+   out[k].update({a:b for a,b in rec.items() if b not in (None,"")})
+   out[k]["first_seen"]=first
+  else:
+   out[k]=dict(rec);out[k]["id"]=k
+ return out
+def category(text):
+ low=text.lower()
+ for cat,terms in SEARCH_TERMS.items():
+  if any(t.lower() in low for t in terms):return cat
+ return None
+def date_value(value):
+ value=clean(value)
+ for fmt in ("%Y-%m-%dT%H:%M:%S%z","%Y-%m-%d %H:%M:%S","%d-%m-%Y %H:%M:%S","%d-%m-%Y","%Y-%m-%d"):
+  try:return datetime.strptime(value[:25],fmt).date().isoformat()
+  except Exception:pass
+ return ""
+class TextOnly(HTMLParser):
+ def __init__(self):super().__init__();self.parts=[]
+ def handle_data(self,data): 
+  if clean(data):self.parts.append(clean(data))
+ def text(self):return clean(" ".join(self.parts))
+class GeMSession:
+ def __init__(self):
+  self.jar=CookieJar();self.opener=build_opener(HTTPCookieProcessor(self.jar));self.csrf=""
+ def request(self,url,data=None,headers=None):
+  h={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"}
+  if headers:h.update(headers)
+  req=Request(url,data=data,headers=h)
+  try:
+   with self.opener.open(req,timeout=35) as response:return response.read().decode("utf-8","replace")
+  except HTTPError as e:
+   if e.code==404:
+    body=e.read().decode("utf-8","replace")
+    try:json.loads(body);return body
+    except Exception:raise
+   raise
+ def init(self):
+  html=self.request(ALL_BIDS,headers={"Accept":"text/html"})
+  m=re.search(r"csrf_bd_gem_nk.*?'([a-f0-9]{32})'",html)
+  if not m:raise RuntimeError("Could not find public GeM CSRF token; portal markup may have changed")
+  self.csrf=m.group(1)
+ def post_json(self,payload):
+  if not self.csrf:self.init()
+  body=urlencode({"payload":json.dumps(payload,separators=(",",":")),"csrf_bd_gem_nk":self.csrf}).encode()
+  raw=self.request(SEARCH_API,data=body,headers={"Content-Type":"application/x-www-form-urlencoded","Accept":"application/json","Referer":ALL_BIDS,"Origin":BASE,"X-Requested-With":"XMLHttpRequest"})
+  return json.loads(raw)
+ def search(self,term,page):
+  data=self.post_json({"page":page,"param":{"searchBid":term,"searchType":"fullText"},"filter":{"bidStatusType":"ongoing_bids","byType":"all","highBidValue":"","byEndDate":{"from":"","to":""},"sort":"Bid-End-Date-Latest"}})
+  if data.get("code") in (404,"404"):return 0,[]
+  if data.get("code")!=200:raise RuntimeError("GeM search returned unexpected response code "+str(data.get("code")))
+  r=data.get("response",{}).get("response",{})
+  return int(r.get("numFound",0)),r.get("docs",[])
+ def detail(self,bid_id):
+  return self.request(BASE+"/showbidDocument/"+str(bid_id),headers={"Accept":"text/html","Referer":ALL_BIDS})
+def doc_fields(doc):
+ def val(k,default=""):
+  x=doc.get(k,default)
+  return x[0] if isinstance(x,list) and x else (x if isinstance(x,str) else default)
+ return {"bid_number":val("b_bid_number"),"bid_id":val("b_id"),"category_raw":val("b_category_name"),
+         "title":val("bbt_title"),"department":val("ba_official_details_deptName"),
+         "ministry":val("ba_official_details_minName"),"start":val("final_start_date_sort"),
+         "end":val("final_end_date_sort")}
 def main():
-    DATA.mkdir(exist_ok=True)
-    old=[]
-    try: old=json.loads((DATA/"tenders.json").read_text(encoding="utf-8"))
-    except Exception: pass
-    previous=dedupe_records(old)
-    seen={}; warnings=[]; pages=0; raw_count=0; success=False
-    with sync_playwright() as p:
-        browser=p.chromium.launch(headless=True)
-        page=browser.new_page(locale="en-IN")
-        try:
-            # Retry ordinary network failures; never bypass CAPTCHA or access controls.
-            navigation_error = None
-            for attempt in range(1, 4):
-                try:
-                    page.goto(URL, wait_until="domcontentloaded", timeout=90000)
-                    navigation_error = None
-                    break
-                except Exception as exc:
-                    navigation_error = exc
-                    if attempt < 3:
-                        wait_seconds = attempt * 10
-                        print(f"GeM connection attempt {attempt}/3 failed; retrying in {wait_seconds}s: {exc}")
-                        page.wait_for_timeout(wait_seconds * 1000)
-            if navigation_error is not None:
-                status = {
-                    "last_scan_success": False,
-                    "last_scan_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
-                    "pages_scanned": 0, "records_seen": 0, "matches_saved": 0,
-                    "warning": "GeM portal unreachable after 3 attempts; existing tender data preserved. " + str(navigation_error)[:300]
-                }
-                (DATA/"status.json").write_text(json.dumps(status, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
-                print(json.dumps(status, indent=2))
-                sys.exit(2)
-            page.wait_for_timeout(5000)
-            if is_challenge(page):
-                raise RuntimeError("GeM displayed a CAPTCHA, login, or access challenge. No bypass attempted; manual review required.")
-            # The page may load the ongoing-bid results by default. If a visible
-            # search form is present, leave its filters untouched rather than
-            # submitting unverified field mappings.
-            for page_no in range(1,101):
-                pages=page_no
-                if is_challenge(page):
-                    raise RuntimeError("GeM access challenge detected during pagination.")
-                rows=extract_rows(page); raw_count += len(rows)
-                for row in rows:
-                    item=parse_row(row)
-                    if item:
-                        key=record_key(item)
-                        item["id"]=key
-                        if key in previous:
-                            item["first_seen"]=previous[key].get("first_seen") or now_ist().isoformat()
-                            item["is_new"]=False
-                        elif key in seen:
-                            item["first_seen"]=seen[key].get("first_seen") or now_ist().isoformat()
-                            item["is_new"]=seen[key].get("is_new",True)
-                        else:
-                            item["first_seen"]=now_ist().isoformat(); item["is_new"]=True
-                        if key in seen:
-                            first_seen=seen[key].get("first_seen") or item["first_seen"]
-                            seen[key].update({k:v for k,v in item.items() if v not in (None, "")})
-                            seen[key]["first_seen"]=first_seen
-                        else:
-                            seen[key]=item
-                nxt=next_page(page)
-                if not nxt: break
-                try:
-                    nxt.click(timeout=5000)
-                    page.wait_for_load_state("domcontentloaded",timeout=10000)
-                    page.wait_for_timeout(1200)
-                except Exception as e:
-                    warnings.append("Pagination stopped: "+str(e)[:180]); break
-            success=True
-        finally:
-            browser.close()
-    # Keep prior records that may have fallen off the ongoing-bids first pages;
-    # do not silently delete potentially active records during transient portal gaps.
-    merged=dedupe_records(old)
-    for record in merged.values(): record["is_new"]=False
-    for key, item in seen.items():
-        if key in merged:
-            first_seen=merged[key].get("first_seen") or item.get("first_seen")
-            merged[key].update({k:v for k,v in item.items() if v not in (None, "")})
-            merged[key]["first_seen"]=first_seen
-            merged[key]["is_new"]=False
-        else:
-            merged[key]=item
-    output=sorted(merged.values(),key=lambda x:(not x.get("is_priority",False),x.get("bid_end_date") or "9999",x.get("title","")))
-    (DATA/"tenders.json").write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    status={"last_scan_success":success,"last_scan_ist":now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
-            "pages_scanned":pages,"records_seen":raw_count,"matches_saved":len(seen),
-            "warning":"; ".join(warnings) if warnings else ("No matching rows detected. Verify GeM result layout and location columns." if not seen else "")}
-    (DATA/"status.json").write_text(json.dumps(status,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print(json.dumps(status,indent=2))
-    if not success: sys.exit(2)
-if __name__=="__main__": main()
+ DATA.mkdir(exist_ok=True)
+ try:old=json.loads((DATA/"tenders.json").read_text(encoding="utf-8"))
+ except Exception:old=[]
+ previous=dedupe_records(old);found={};terms=[(c,t) for c,ts in SEARCH_TERMS.items() for t in ts]
+ session=GeMSession();pages=0;docs_seen=0;details_seen=0;warnings=[];scan_started=now_ist()
+ try:
+  session.init()
+  # Each keyword is paginated to the portal's reported final page.
+  for expected_cat,term in terms:
+   page=1;total=0
+   while True:
+    total,docs=session.search(term,page);pages+=1
+    if not docs:break
+    docs_seen+=len(docs)
+    for doc in docs:
+     f=doc_fields(doc);bid_id=f["bid_id"]
+     key=record_key({"bid_number":f["bid_number"],"url":BASE+"/showbidDocument/"+bid_id})
+     if key in found:continue
+     try:
+      detail_html=session.detail(bid_id) if bid_id else ""
+      details_seen+=1
+      parser=TextOnly();parser.feed(detail_html);detail_text=parser.text()
+     except Exception as exc:
+      warnings.append("Bid detail unavailable for "+(f["bid_number"] or bid_id)+": "+str(exc)[:120])
+      detail_text=""
+     combined=clean(" ".join([f["title"],f["category_raw"],f["department"],f["ministry"],detail_text]))
+     cat=category(combined) or expected_cat
+     low=combined.lower()
+     matched_locs=[]
+     if "mumbai" in low or re.search(r"\b400\d{3}\b",low):matched_locs.append("Mumbai")
+     if "palghar" in low or re.search(r"\b401\d{3}\b",low):matched_locs.append("Palghar")
+     if not matched_locs:continue
+     org=next((p for p in PRIORITY if p in low),None)
+     end=date_value(f["end"])
+     url=BASE+"/showbidDocument/"+bid_id if bid_id else ""
+     item={"bid_number":f["bid_number"],"title":f["title"] or f["category_raw"],
+      "buyer":f["department"] or f["ministry"],"location":" / ".join(matched_locs),
+      "category":cat,"bid_end_date":end,"url":url,"is_priority":bool(org),
+      "is_new":False,"raw_text":combined,"id":key}
+     if key in previous:
+      item["first_seen"]=previous[key].get("first_seen") or now_ist().isoformat()
+     else:item["first_seen"]=now_ist().isoformat();item["is_new"]=True
+     found[key]=item
+     time.sleep(0.25)
+    if len(docs_seen)>=total and page*10>=total:break
+    if len(docs)<10 or page*10>=total:break
+    page+=1;time.sleep(0.35)
+  # Only publish a successful complete keyword sweep; preserve old data on failures.
+  merged=dedupe_records(old)
+  for rec in merged.values():rec["is_new"]=False
+  for key,item in found.items():
+   if key in merged:
+    first=merged[key].get("first_seen") or item["first_seen"]
+    merged[key].update({k:v for k,v in item.items() if v not in (None,"")})
+    merged[key]["first_seen"]=first;merged[key]["is_new"]=False
+   else:merged[key]=item
+  output=sorted(merged.values(),key=lambda x:(not x.get("is_priority",False),x.get("bid_end_date") or "9999",x.get("title","")))
+  (DATA/"tenders.json").write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+  status={"last_scan_success":True,"last_scan_ist":now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
+   "pages_scanned":pages,"records_seen":docs_seen,"details_checked":details_seen,"matches_saved":len(found),
+   "warning":"; ".join(warnings[:10]) if warnings else ""}
+ except Exception as exc:
+  status={"last_scan_success":False,"last_scan_ist":now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
+   "pages_scanned":pages,"records_seen":docs_seen,"details_checked":details_seen,"matches_saved":0,
+   "warning":"GeM public search failed; previous tender data preserved. "+str(exc)[:300]}
+ (DATA/"status.json").write_text(json.dumps(status,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+ print(json.dumps(status,indent=2))
+ if not status["last_scan_success"]:sys.exit(2)
+if __name__=="__main__":main()
