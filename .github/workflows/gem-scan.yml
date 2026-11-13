@@ -1,4 +1,4 @@
-name: GeM Mumbai-Palghar scan
+name: GeM Mumbai-Palghar-Boisar scan
 on:
   push:
     branches: [main]
@@ -17,7 +17,7 @@ permissions:
   actions: write
 concurrency:
   group: gem-tender-scan
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   scan:
     runs-on: ubuntu-24.04
