@@ -29,7 +29,7 @@ SEARCH_TERMS={
  "Fire Safety":("Fire Alarm","Fire Safety","Fire Extinguisher","Smoke Detector"),
  "IT Assets":("Desktop Computer","Laptop","Computer Monitor","Printer","IT Equipment"),
 }
-LOCATIONS=("mumbai","palghar","401","400")
+LOCATIONS=("mumbai","palghar","boisar","401","400")
 def now_ist(): return datetime.now(IST)
 def clean(s): return re.sub(r"\s+"," ",s or "").strip()
 def normalize_bid_number(value): return re.sub(r"\s+","",clean(value).upper())
