@@ -5,7 +5,8 @@ Does not solve or bypass CAPTCHA, OTP, authentication, or access controls.
 The portal's public markup can change; validate the first workflow run.
 """
 from __future__ import annotations
-import json, re, sys, time
+import hashlib, json, re, sys, time
+from urllib.parse import urlsplit, urlunsplit
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -26,6 +27,42 @@ KEYWORDS = {
 }
 def now_ist(): return datetime.now(IST)
 def clean(s): return re.sub(r"\s+", " ", s or "").strip()
+def normalize_bid_number(value):
+    value = clean(value).upper()
+    return re.sub(r"\\s+", "", value)
+
+def canonical_url(value):
+    value = clean(value)
+    if not value: return ""
+    try:
+        parts = urlsplit(value)
+        return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), "", ""))
+    except Exception:
+        return value.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+
+def record_key(record):
+    number = normalize_bid_number(record.get("bid_number", ""))
+    if number: return "bid:" + number
+    url = canonical_url(record.get("url", ""))
+    if url: return "url:" + url
+    raw = clean(record.get("raw_text", ""))
+    return "text:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def dedupe_records(records):
+    unique = {}
+    for record in records:
+        if not isinstance(record, dict): continue
+        key = record_key(record)
+        if key in unique:
+            previous = unique[key]
+            first_seen = previous.get("first_seen") or record.get("first_seen")
+            previous.update({k:v for k,v in record.items() if v not in (None, "")})
+            previous["first_seen"] = first_seen
+        else:
+            unique[key] = dict(record)
+            unique[key]["id"] = key
+    return unique
+
 def category(text):
     t=text.lower()
     for name, words in KEYWORDS.items():
@@ -96,7 +133,7 @@ def parse_row(row):
     number=bid_no(raw)
     # Preserve full row text because portal column labels/layout can vary.
     title=raw[:240]
-    return {"id":number or row.get("url") or str(abs(hash(raw))),"bid_number":number,"title":title,
+    return {"id":record_key({"bid_number":number,"url":row.get("url"),"raw_text":raw}),"bid_number":number,"title":title,
             "buyer":next((label for label in ("NPCIL","BARC","AEES") if label.lower() in low), ""),
             "location":"Mumbai" if "mumbai" in low else "Palghar",
             "category":cat,"bid_end_date":end_date(raw),"url":row.get("url") or URL,
@@ -106,7 +143,7 @@ def main():
     old=[]
     try: old=json.loads((DATA/"tenders.json").read_text(encoding="utf-8"))
     except Exception: pass
-    previous={x.get("id"):x for x in old}
+    previous=dedupe_records(old)
     seen={}; warnings=[]; pages=0; raw_count=0; success=False
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True)
@@ -149,12 +186,22 @@ def main():
                 for row in rows:
                     item=parse_row(row)
                     if item:
-                        key=item["id"]
+                        key=record_key(item)
+                        item["id"]=key
                         if key in previous:
                             item["first_seen"]=previous[key].get("first_seen") or now_ist().isoformat()
+                            item["is_new"]=False
+                        elif key in seen:
+                            item["first_seen"]=seen[key].get("first_seen") or now_ist().isoformat()
+                            item["is_new"]=seen[key].get("is_new",True)
                         else:
                             item["first_seen"]=now_ist().isoformat(); item["is_new"]=True
-                        seen[key]=item
+                        if key in seen:
+                            first_seen=seen[key].get("first_seen") or item["first_seen"]
+                            seen[key].update({k:v for k,v in item.items() if v not in (None, "")})
+                            seen[key]["first_seen"]=first_seen
+                        else:
+                            seen[key]=item
                 nxt=next_page(page)
                 if not nxt: break
                 try:
@@ -168,9 +215,16 @@ def main():
             browser.close()
     # Keep prior records that may have fallen off the ongoing-bids first pages;
     # do not silently delete potentially active records during transient portal gaps.
-    merged={x.get("id"):x for x in old if x.get("id")}
+    merged=dedupe_records(old)
     for record in merged.values(): record["is_new"]=False
-    merged.update(seen)
+    for key, item in seen.items():
+        if key in merged:
+            first_seen=merged[key].get("first_seen") or item.get("first_seen")
+            merged[key].update({k:v for k,v in item.items() if v not in (None, "")})
+            merged[key]["first_seen"]=first_seen
+            merged[key]["is_new"]=False
+        else:
+            merged[key]=item
     output=sorted(merged.values(),key=lambda x:(not x.get("is_priority",False),x.get("bid_end_date") or "9999",x.get("title","")))
     (DATA/"tenders.json").write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     status={"last_scan_success":success,"last_scan_ist":now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
