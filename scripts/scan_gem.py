@@ -10,6 +10,7 @@ from http.cookiejar import CookieJar
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from scripts.pdf_extract import extract_detail_documents
 
 ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/"data"
@@ -71,6 +72,11 @@ class TextOnly(HTMLParser):
 class GeMSession:
  def __init__(self):
   self.jar=CookieJar();self.opener=build_opener(HTTPCookieProcessor(self.jar));self.csrf=""
+ def request_bytes(self,url,headers=None):
+  h={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"}
+  if headers:h.update(headers)
+  req=Request(url,headers=h)
+  with self.opener.open(req,timeout=45) as response:return response.read()
  def request(self,url,data=None,headers=None):
   h={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"}
   if headers:h.update(headers)
@@ -132,6 +138,10 @@ def main():
       detail_html=session.detail(bid_id) if bid_id else ""
       details_seen+=1
       parser=TextOnly();parser.feed(detail_html);detail_text=parser.text()
+      pdf_texts,pdf_errors=extract_detail_documents(detail_html,BASE+"/showbidDocument/"+str(bid_id),session)
+      if pdf_errors:warnings.extend(pdf_errors[:2])
+      pdf_text=" ".join(pdf_texts)
+      if pdf_text:detail_text=clean(detail_text+" "+pdf_text)
      except Exception as exc:
       warnings.append("Bid detail unavailable for "+(f["bid_number"] or bid_id)+": "+str(exc)[:120])
       detail_text=""
