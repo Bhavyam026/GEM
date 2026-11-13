@@ -1,8 +1,8 @@
 {
   "last_scan_success": false,
-  "last_scan_ist": null,
+  "last_scan_ist": "13-Nov-2026 02:42:22 PM IST",
   "pages_scanned": 0,
   "records_seen": 0,
   "matches_saved": 0,
-  "warning": "Initial setup. Waiting for the first scheduled scan."
+  "warning": "GeM portal unreachable after 3 attempts; existing tender data preserved. Page.goto: net::ERR_CONNECTION_REFUSED at https://bidplus.gem.gov.in/advance-search\nCall log:\n  - navigating to \"https://bidplus.gem.gov.in/advance-search\", waiting until \"domcontentloaded\"\n"
 }
