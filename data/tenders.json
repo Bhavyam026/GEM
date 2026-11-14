@@ -1,24 +1,5 @@
 [
   {
-    "bid_number": "GEM/2026/B/8174356",
-    "title": "Supply of 10 CCTV cameras",
-    "buyer": "NPCIL — Nuclear Power Corporation of India Limited",
-    "location": "Tarapur Site, Boisar, Palghar 401504",
-    "category": "CCTV & Surveillance",
-    "bid_end_date": "2026-11-19T11:00:00+05:30",
-    "first_seen": "2026-11-13",
-    "is_priority": true,
-    "is_new": false,
-    "url": "https://tenders.infralens.in/gem/cctv-camera-8174356",
-    "source_url": "https://tenders.infralens.in/gem/cctv-camera-8174356",
-    "verification_status": "Pending GeM Verification",
-    "raw_text": "Secondary tender listing reports 10 IP cameras for NPCIL; delivery at Tarapur Maharashtra Site, PO TAPP, via Boisar, District Palghar 401504. GeM official portal could not be reached during verification.",
-    "source_type": "Secondary listing",
-    "pdf_status": "Not verified on official GeM portal",
-    "buyer_code": "NPCIL",
-    "documents_url": "https://avsar.app/tender/gem-2026-b-8174356"
-  },
-  {
     "bid_number": "GEM/2026/B/8058810",
     "title": "Supply of 425 lighting fixtures of various types",
     "buyer": "NPCIL — Nuclear Power Corporation of India Limited",
