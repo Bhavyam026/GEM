@@ -43,13 +43,13 @@ function render(){
   const list=getFiltered();
   $("rows").innerHTML=list.length?list.map(t=>{
     const officialBid=t.official_url||"https://bidplus.gem.gov.in/advance-search";
-    const rawPdfUrl=t.pdf_url||"";
-    const pdfUrl=t.pdf_verified===true && /^https:\/\/bidplus\.gem\.gov\.in\//i.test(rawPdfUrl) ? rawPdfUrl : "";
+    const localPdfPath=t.pdf_local_path||"";
+    const pdfUrl=t.pdf_verified===true && /^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(localPdfPath) ? localPdfPath : "";
     const title=t.bid_number||t.title||"Tender PDF";
     const docsUrl=t.documents_url||"";
     const pdfActions=pdfUrl
-      ? '<div class="pdf-actions"><button type="button" data-pdf="'+esc(pdfUrl)+'" data-title="'+esc(title)+'">Preview verified PDF</button><a class="download" href="'+esc(pdfUrl)+'" download>Download verified PDF</a>'+(docsUrl?'<a href="'+esc(docsUrl)+'" target="_blank" rel="noopener">All tender documents</a>':'')+'</div>'
-      : '<small>Direct PDF is not hosted here yet.</small><div class="pdf-actions">'+(docsUrl?'<a href="'+esc(docsUrl)+'" target="_blank" rel="noopener">Open document page</a>':'<a href="https://bidplus.gem.gov.in/advance-search" target="_blank" rel="noopener">Search on official GeM</a>')+'</div>';
+      ? '<div class="pdf-actions"><button type="button" data-pdf="'+esc(pdfUrl)+'" data-title="'+esc(title)+'">Preview original PDF</button><a class="download" href="'+esc(pdfUrl)+'" download>Download original PDF</a>'+(docsUrl?'<a href="'+esc(docsUrl)+'" target="_blank" rel="noopener">All tender documents</a>':'')+'</div>'
+      : '<small>Original GeM PDF copy is not available in the dashboard yet.</small><div class="pdf-actions">'+(docsUrl?'<a href="'+esc(docsUrl)+'" target="_blank" rel="noopener">Open GeM document page</a>':'<a href="https://bidplus.gem.gov.in/advance-search" target="_blank" rel="noopener">Search on official GeM</a>')+'</div>';
     return '<tr><td><a target="_blank" rel="noopener" href="'+esc(officialBid)+'">'+esc(t.title||"Untitled bid")+'</a><br><small>'+esc(t.bid_number||"Bid number unavailable")+'</small><br><span class="tag">'+(t.source_type==="Secondary listing"?"Secondary listing":"Official GeM")+'</span>'+(t.verification_status?'<br><span class="tag priority">'+esc(t.verification_status)+'</span>':'')+'</td><td>'+esc(t.buyer||"—")+(t.is_priority?' <span class="tag priority">PRIORITY</span>':'')+'</td><td>'+esc(t.location||"—")+'</td><td><span class="tag">'+esc(t.category||"Other")+'</span></td><td>'+fmt(t.bid_end_date)+'</td><td>'+fmt(t.first_seen)+'</td><td>'+pdfActions+'</td></tr>';
   }).join(""):'<tr><td colspan="7" class="empty">No tenders match these filters.</td></tr>';
   $("foot").textContent='Showing '+list.length+' of '+tenders.length+' tenders · Last scan: '+(status.last_scan_ist||"not yet run")+' · '+(status.warning||"");
