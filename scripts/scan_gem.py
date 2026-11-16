@@ -170,7 +170,7 @@ def category_for(text):
 def q_tier_for(*sources):
     """Return Q3 only when explicitly evidenced; Q2 is rejected, conflicts are manual."""
     text = " ".join(clean(source) for source in sources if source)
-    tiers = set(re.findall(r"\\bQ\\s*[-:]?\\s*([234])\\b", text, re.I))
+    tiers = set(re.findall(r"\bQ\s*[-:]?\s*([234])\b", text, re.I))
     if len(tiers) != 1:
         return "manual_review"
     tier = next(iter(tiers))
