@@ -1,0 +1,1 @@
+Manual scan trigger file. The GeM scan workflow watches this path.
