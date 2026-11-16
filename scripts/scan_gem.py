@@ -160,6 +160,15 @@ def buyer_matches(buyer_key, buyer_fields, *detail_sources):
     ))
 
 
+def target_ministry_department(ministry, department, *detail_sources):
+    """Require the exact PMO / Department of Atomic Energy scope."""
+    ministry_text = normalize(" ".join([clean(ministry), *[clean(x) for x in detail_sources if x]]))
+    department_text = normalize(" ".join([clean(department), *[clean(x) for x in detail_sources if x]]))
+    pmo_ok = bool(re.search(r"\\bpmo\\b", ministry_text)) or "prime minister s office" in ministry_text
+    department_ok = "department of atomic energy" in department_text
+    return pmo_ok and department_ok
+
+
 def category_for(text):
     low = clean(text).lower()
     for category, terms in SEARCH_TERMS.items():
@@ -409,6 +418,8 @@ def scan_buyer(session, buyer_key, counters):
             # not just the search result row (which may omit the organisation).
             if not buyer_matches(buyer_key, buyer_field_text(doc, fields), detail_text, " ".join(pdf_texts)):
                 continue
+            if not target_ministry_department(fields["ministry"], fields["department"], detail_text, " ".join(pdf_texts)):
+                continue
             category = category_for(combined)
             # The Q3-only rule applies to CCTV product/category bids only.
             # Facility-management and other service tenders have no Q-tier gate.
@@ -467,6 +478,10 @@ def main():
         old = json.loads(tenders_path.read_text(encoding="utf-8"))
     except Exception:
         old = []
+    try:
+        previous_status = json.loads(status_path.read_text(encoding="utf-8"))
+    except Exception:
+        previous_status = {}
     previous = dedupe_records(old)
     counters = {
         "pages_scanned": 0,
@@ -515,6 +530,7 @@ def main():
         status = {
             "last_scan_success": True,
             "last_scan_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
+            "last_success_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
             "scan_started_ist": started.strftime("%d-%b-%Y %I:%M:%S %p IST"),
             "buyers_scanned": ["NPCIL", "BARC", "AEES"],
             "pages_scanned": counters["pages_scanned"],
@@ -528,6 +544,7 @@ def main():
         status = {
             "last_scan_success": False,
             "last_scan_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
+            "last_success_ist": previous_status.get("last_success_ist", ""),
             "buyers_scanned": ["NPCIL", "BARC", "AEES"],
             "pages_scanned": counters["pages_scanned"],
             "records_seen": counters["records_seen"],
