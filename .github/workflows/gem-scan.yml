@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/gem-scan.yml"
+      - ".github/ge m-scan-trigger.txt"
       - "scripts/scan_gem.py"
       - "scripts/pdf_extract.py"
       - "tests/test_scan_gem.py"
