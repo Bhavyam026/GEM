@@ -182,7 +182,7 @@ def office_name_for(*sources):
     """Read GeM's Office Name separately from its buyer organisation."""
     text = " ".join(clean(source) for source in sources if source)
     match = re.search(
-        r"(?:Office Name|कार्यालय का नाम)\\s*[:：]?\\s*([A-Za-z0-9][A-Za-z0-9 .&()/-]{0,30})",
+        r"(?:Office Name|कार्यालय का नाम)\s*[:：]?\s*([A-Za-z0-9][A-Za-z0-9 .&()/-]{0,30})",
         text, re.I
     )
     return clean(match.group(1)).strip(" .|:-") if match else ""
