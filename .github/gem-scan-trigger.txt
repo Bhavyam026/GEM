@@ -1,1 +1,1 @@
-Manual scan trigger file. The GeM scan workflow watches this path.
+Manual scan trigger file. Last manual run requested 2026-11-16.
