@@ -2,9 +2,9 @@ import unittest
 
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
-    buyer_matches, category_for, location_matches,
+    buyer_matches, category_for, location_matches, bid_is_active,
 )
-from scripts.pdf_extract import TenderLinks
+from scripts.pdf_extract import TenderLinks, safe_pdf_filename
 
 
 class DeduplicationTests(unittest.TestCase):
@@ -55,6 +55,13 @@ class BuyerAndCategoryTests(unittest.TestCase):
 
 
 class PdfLinkTests(unittest.TestCase):
+    def test_pdf_filename_is_safely_mapped_to_bid_number(self):
+        self.assertEqual(safe_pdf_filename("GEM/2026/B/12345"), "GEM_2026_B_12345.pdf")
+
+    def test_expired_bid_is_not_active_but_future_bid_is(self):
+        self.assertFalse(bid_is_active("2020-01-01"))
+        self.assertTrue(bid_is_active("2099-12-31"))
+
     def test_only_official_gem_links_are_collected(self):
         html = (
             '<a href="/download/abc.pdf">Download PDF</a>'
