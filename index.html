@@ -44,7 +44,7 @@ function render(){
   $("rows").innerHTML=list.length?list.map(t=>{
     const officialBid=t.official_url||"https://bidplus.gem.gov.in/advance-search";
     const localPdfPath=t.pdf_local_path||"";
-    const pdfUrl=t.pdf_verified===true && /^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(localPdfPath) ? localPdfPath : "";
+    const pdfUrl=t.pdf_verified===true && /^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(localPdfPath) ? "https://raw.githubusercontent.com/Bhavyam026/GEM/main/"+localPdfPath : "";
     const title=t.bid_number||t.title||"Tender PDF";
     const docsUrl=t.documents_url||"";
     const pdfActions=pdfUrl
