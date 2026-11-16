@@ -418,7 +418,7 @@ def scan_buyer(session, buyer_key, counters):
                 "title": fields["title"] or fields["category_raw"] or "GeM tender",
                 "buyer": buyer_name,
                 "buyer_code": buyer_key,
-                "office_name": "",
+                "office_name": office_name_for(detail_text, " ".join(pdf_texts)),
                 "location": " / ".join(locations),
                 "category": category,
                 "gem_category_tier": q_tier,
