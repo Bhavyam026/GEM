@@ -62,11 +62,36 @@ def safe_pdf_filename(bid_number: str) -> str:
     return safe + ".pdf"
 
 
+def save_original_pdf(content: bytes, bid_number: str, data_dir: Path | None = None) -> str:
+    """Atomically save the exact downloaded PDF bytes under its Bid Number."""
+    if not isinstance(content, bytes) or not content.startswith(b"%PDF"):
+        raise ValueError("Downloaded document is not a valid PDF signature")
+    if len(content) > 25 * 1024 * 1024:
+        raise ValueError("PDF exceeds 25 MB safety limit")
+
+    if data_dir is None:
+        data_dir = Path(__file__).resolve().parents[1] / "data"
+    target_dir = Path(data_dir) / "pdfs"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / safe_pdf_filename(bid_number)
+    temporary = target.with_name(target.name + ".tmp")
+    try:
+        temporary.write_bytes(content)
+        saved = temporary.read_bytes()
+        if saved != content:
+            raise IOError("Saved PDF bytes do not match the original download")
+        temporary.replace(target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return "data/pdfs/" + target.name
+
+
 def extract_detail_documents(html: str, detail_url: str, session, bid_number: str = ""):
     """Return (PDF text, verified direct PDF URLs, errors, local PDF path).
 
     Only official GeM BidPlus links are accepted. The first PDF that passes the
-    PDF signature check is stored byte-for-byte under data/pdfs using its Bid Number.
+    signature and size checks is stored byte-for-byte under data/pdfs using its Bid Number.
     """
     parser = TenderLinks(detail_url)
     parser.feed(html)
@@ -85,14 +110,7 @@ def extract_detail_documents(html: str, detail_url: str, session, bid_number: st
                 continue
             verified_urls.append(url)
             if not local_path:
-                target = Path(__file__).resolve().parents[1] / "data" / "pdfs" / safe_pdf_filename(bid_number)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(content)
-                # Verify the saved bytes, not only the network response.
-                if target.read_bytes()[:4] != b"%PDF":
-                    target.unlink(missing_ok=True)
-                    raise RuntimeError("Saved PDF failed signature verification")
-                local_path = "data/pdfs/" + target.name
+                local_path = save_original_pdf(content, bid_number)
             text = extract_pdf_text(content)
             if text:
                 texts.append(text)
