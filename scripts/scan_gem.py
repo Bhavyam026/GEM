@@ -38,7 +38,7 @@ MAX_PAGES_PER_BUYER = 500
 
 BUYERS = {
     "NPCIL": {
-        "name": "NUCLEAR POWER CORPORATION OF INDIA LIMITED",
+        "name": "Nuclear Power Corporation of India Limited",
         "organization": "NUCLEAR POWER CORPORATION OF INDIA LIMITED",
         "aliases": ("NUCLEAR POWER CORPORATION OF INDIA LIMITED", "NPCIL"),
     },
@@ -48,7 +48,7 @@ BUYERS = {
         "aliases": ("Bhabha Atomic Research Centre", "BARC"),
     },
     "AEES": {
-        "name": "Atomic Energy Education Society (AEES)",
+        "name": "Atomic Energy Education Society",
         "organization": "Atomic Energy Education Society (AEES)",
         "aliases": ("Atomic Energy Education Society (AEES)", "Atomic Energy Education Society", "AEES"),
     },
