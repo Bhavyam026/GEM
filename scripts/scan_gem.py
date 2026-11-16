@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 BASE = "https://bidplus.gem.gov.in"
 ALL_BIDS = BASE + "/all-bids"
+ADVANCE_SEARCH = BASE + "/advance-search"
 SEARCH_API = BASE + "/search-bids"
 IST = ZoneInfo("Asia/Kolkata")
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
@@ -307,7 +308,7 @@ class GeMSession:
         return raw.decode("utf-8", "replace")
 
     def init(self):
-        html = self.request(ALL_BIDS, headers={"Accept": "text/html"})
+        html = self.request(ADVANCE_SEARCH, headers={"Accept": "text/html"})
         low = html.lower()
         if any(marker in low for marker in ("captcha", "access denied", "verify you are human")):
             raise AccessChallengeError("GeM displayed an access challenge; manual review required")
@@ -355,7 +356,7 @@ class GeMSession:
             headers={
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Accept": "application/json",
-                "Referer": BASE + "/advance-search",
+                "Referer": ADVANCE_SEARCH,
                 "Origin": BASE,
                 "X-Requested-With": "XMLHttpRequest",
             },
