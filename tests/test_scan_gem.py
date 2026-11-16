@@ -5,6 +5,7 @@ from pathlib import Path
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
     buyer_matches, category_for, location_matches, q_tier_for, office_name_for, bid_is_active,
+    target_ministry_department,
 )
 from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
 
@@ -39,6 +40,12 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertFalse(buyer_matches("BARC", "Bharat Heavy Electricals Limited"))
         self.assertFalse(buyer_matches("BARC", "", "BARC is mentioned in an unrelated technical specification"))
         self.assertTrue(buyer_matches("AEES", "Atomic Energy Education Society"))
+
+    def test_exact_pmo_and_atomic_energy_scope_is_required(self):
+        self.assertTrue(target_ministry_department("PMO", "Department of Atomic Energy"))
+        self.assertTrue(target_ministry_department("Prime Minister's Office", "Department of Atomic Energy"))
+        self.assertFalse(target_ministry_department("Ministry of Defence", "Department of Atomic Energy"))
+        self.assertFalse(target_ministry_department("PMO", "Department of Telecommunications"))
 
     def test_categories_are_classified_from_bid_text(self):
         self.assertEqual(category_for("Annual Maintenance Contract for CCTV systems"), "CCTV & Surveillance")
