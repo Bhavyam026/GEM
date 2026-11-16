@@ -49,7 +49,7 @@ jobs:
           git add -A data/pdfs/
           if ! git diff --cached --quiet; then
             git commit -m "Update GeM tender scan data"
-            git pull --rebase origin main
+            git pull --rebase -X theirs origin main
             git push
             gh workflow run pages.yml --ref main
           fi
