@@ -11,8 +11,8 @@ on:
       - "requirements.txt"
   workflow_dispatch:
   schedule:
-    # 09:00 to 18:00 IST = 03:30 to 12:30 UTC, Monday-Saturday
-    - cron: "30 3-12 * * 1-6"
+    # Every 2 hours from 09:00 to 17:00 IST, Monday-Saturday (03:30-11:30 UTC)
+    - cron: "30 3,5,7,9,11 * * 1-6"
 permissions:
   contents: write
   actions: write
