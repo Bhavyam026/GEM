@@ -4,7 +4,7 @@ from pathlib import Path
 
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
-    buyer_matches, category_for, location_matches, q_tier_for, bid_is_active,
+    buyer_matches, category_for, location_matches, q_tier_for, office_name_for, bid_is_active,
 )
 from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
 
@@ -48,6 +48,9 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(category_for("Facility Management Service; O&M of Electrical Work; Skilled"), "Electrical")
         self.assertEqual(category_for("Fire alarm and smoke detector"), "Fire Safety")
         self.assertEqual(category_for("unrelated stationery"), "")
+
+    def test_office_name_is_separate_from_buyer_organisation(self):
+        self.assertEqual(office_name_for("Organisation Name Bhabha Atomic Research Centre Office Name Nrb Contact details"), "Nrb")
 
     def test_only_explicit_q3_tier_is_accepted(self):
         self.assertEqual(q_tier_for("Q3"), "Q3")
