@@ -4,7 +4,7 @@ from pathlib import Path
 
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
-    buyer_matches, category_for, location_matches, bid_is_active,
+    buyer_matches, category_for, location_matches, q_tier_for, bid_is_active,
 )
 from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
 
@@ -47,6 +47,14 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(category_for("Supply of LAN Switches"), "Networking")
         self.assertEqual(category_for("Fire alarm and smoke detector"), "Fire Safety")
         self.assertEqual(category_for("unrelated stationery"), "")
+
+    def test_only_explicit_q3_tier_is_accepted(self):
+        self.assertEqual(q_tier_for("Q3"), "Q3")
+        self.assertEqual(q_tier_for("Category: Q3 - CCTV"), "Q3")
+        self.assertEqual(q_tier_for("Q2"), "rejected")
+        self.assertEqual(q_tier_for("Q4"), "rejected")
+        self.assertEqual(q_tier_for("CCTV camera supply"), "manual_review")
+        self.assertEqual(q_tier_for("Q2 and Q3"), "manual_review")
 
     def test_location_matching_includes_boisar_and_pin_codes(self):
         self.assertEqual(location_matches("Delivery at Tarapur Site, Boisar, Palghar 401504"),
