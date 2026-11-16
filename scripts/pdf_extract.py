@@ -1,9 +1,11 @@
-"""Extract publicly accessible GeM PDF links and selectable text."""
+"""Extract publicly accessible GeM PDF links, save exact PDF bytes, and extract text."""
 from __future__ import annotations
 
+import re
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 from io import BytesIO
+from pathlib import Path
 
 
 class TenderLinks(HTMLParser):
@@ -53,23 +55,44 @@ def extract_pdf_text(content: bytes) -> str:
     return " ".join((page.extract_text() or "") for page in reader.pages).strip()
 
 
-def extract_detail_documents(html: str, detail_url: str, session):
-    """Return (PDF text, verified direct PDF URLs, errors).
+def safe_pdf_filename(bid_number: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", str(bid_number or "").strip()).strip("_")
+    if not safe:
+        raise ValueError("Cannot save a tender PDF without its Bid Number")
+    return safe + ".pdf"
 
-    Only links hosted on the official GeM BidPlus domain are considered.
-    A URL is returned only after its response has a PDF file signature.
+
+def extract_detail_documents(html: str, detail_url: str, session, bid_number: str = ""):
+    """Return (PDF text, verified direct PDF URLs, errors, local PDF path).
+
+    Only official GeM BidPlus links are accepted. The first PDF that passes the
+    PDF signature check is stored byte-for-byte under data/pdfs using its Bid Number.
     """
     parser = TenderLinks(detail_url)
     parser.feed(html)
     texts, verified_urls, errors = [], [], []
+    local_path = ""
     for url in parser.links[:8]:
         try:
             content = session.request_bytes(
                 url, headers={"Accept": "application/pdf,*/*"}, attempts=2
             )
-            if content[:4] != b"%PDF":
+            if not content.startswith(b"%PDF"):
+                errors.append(f"{url}: response did not contain a PDF signature")
+                continue
+            if len(content) > 25 * 1024 * 1024:
+                errors.append(f"{url}: PDF exceeds 25 MB safety limit")
                 continue
             verified_urls.append(url)
+            if not local_path:
+                target = Path(__file__).resolve().parents[1] / "data" / "pdfs" / safe_pdf_filename(bid_number)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
+                # Verify the saved bytes, not only the network response.
+                if target.read_bytes()[:4] != b"%PDF":
+                    target.unlink(missing_ok=True)
+                    raise RuntimeError("Saved PDF failed signature verification")
+                local_path = "data/pdfs/" + target.name
             text = extract_pdf_text(content)
             if text:
                 texts.append(text)
@@ -77,4 +100,4 @@ def extract_detail_documents(html: str, detail_url: str, session):
                 errors.append(f"{url}: PDF has no selectable text; manual review/OCR required")
         except Exception as exc:
             errors.append(f"{url}: {str(exc)[:100]}")
-    return texts, verified_urls, errors
+    return texts, verified_urls, errors, local_path
