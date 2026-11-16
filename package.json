@@ -1,0 +1,9 @@
+{
+  "name": "gem-mumbai-palghar-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only GeM tender dashboard",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
