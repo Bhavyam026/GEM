@@ -1,10 +1,12 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
     buyer_matches, category_for, location_matches, bid_is_active,
 )
-from scripts.pdf_extract import TenderLinks, safe_pdf_filename
+from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
 
 
 class DeduplicationTests(unittest.TestCase):
@@ -57,6 +59,21 @@ class BuyerAndCategoryTests(unittest.TestCase):
 class PdfLinkTests(unittest.TestCase):
     def test_pdf_filename_is_safely_mapped_to_bid_number(self):
         self.assertEqual(safe_pdf_filename("GEM/2026/B/12345"), "GEM_2026_B_12345.pdf")
+
+    def test_original_pdf_bytes_are_saved_unchanged_and_bid_mapped(self):
+        original = b"%PDF-1.7\\nOriginal GeM document bytes\\n%%EOF"
+        with tempfile.TemporaryDirectory() as tmp:
+            relative = save_original_pdf(original, "GEM/2026/B/12345", Path(tmp))
+            saved = Path(tmp) / relative.replace("data/", "")
+            self.assertEqual(relative, "data/pdfs/GEM_2026_B_12345.pdf")
+            self.assertEqual(saved.read_bytes(), original)
+
+    def test_non_pdf_and_oversized_files_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                save_original_pdf(b"<html>not a PDF</html>", "GEM/2026/B/1", Path(tmp))
+            with self.assertRaises(ValueError):
+                save_original_pdf(b"%PDF" + b"x" * (25 * 1024 * 1024), "GEM/2026/B/2", Path(tmp))
 
     def test_expired_bid_is_not_active_but_future_bid_is(self):
         self.assertFalse(bid_is_active("2020-01-01"))
