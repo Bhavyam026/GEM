@@ -189,7 +189,10 @@ def parse_date(value):
     except ValueError:
         for fmt in ("%d-%m-%Y %H:%M:%S", "%d-%m-%Y", "%Y-%m-%d"):
             try:
-                return datetime.strptime(value[:19], fmt).replace(tzinfo=IST).isoformat(timespec="minutes")
+                parsed = datetime.strptime(value[:19], fmt)
+                if fmt in ("%d-%m-%Y", "%Y-%m-%d"):
+                    return parsed.date().isoformat()
+                return parsed.replace(tzinfo=IST).isoformat(timespec="minutes")
             except ValueError:
                 pass
     return value
@@ -200,7 +203,7 @@ def bid_is_active(value):
     if not value:
         return True
     try:
-        if re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", value):
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
             return datetime.strptime(value, "%Y-%m-%d").date() >= now_ist().date()
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
         if dt.tzinfo is None:
