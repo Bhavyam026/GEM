@@ -32,7 +32,7 @@ header{padding:28px max(20px,calc((100vw - 1200px)/2));border-bottom:1px solid v
 
 <script>
 const $=id=>document.getElementById(id);let tenders=[],active="all",status={};
-function isQualified(t){return t.source_type==="Official GeM public listing"&&t.pdf_verified===true&&/^data\\/pdfs\\/[A-Za-z0-9_.-]+\\.pdf$/.test(t.pdf_local_path||"");}
+function isQualified(t){return t.source_type==="Official GeM public listing"&&t.pdf_verified===true&&/^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(t.pdf_local_path||"");}
 const dateVal=s=>{if(!s)return null;const d=new Date(s);return isNaN(d)?null:d};
 const fmt=s=>{const d=dateVal(s);return d?d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):(s||"—")};
 function tenderKey(t){const bid=String(t.bid_number||"").toUpperCase().replace(/\s+/g,"");if(bid)return "bid:"+bid;const url=String(t.url||"").split("#")[0].split("?")[0].replace(/\/$/,"").toLowerCase();return url?"url:"+url:"title:"+String(t.title||"").trim().toLowerCase();}
@@ -61,7 +61,7 @@ function render(){
     const tierNote=t.category==="CCTV & Surveillance"&&!/^Q3$/i.test(t.gem_category_tier||"")?"Q3 not confirmed — excluded":(t.verification_status||"Pending official GeM verification");
     return '<tr><td>'+esc(t.bid_number||"Bid number unavailable")+'<br>'+esc(t.title||"Untitled lead")+'</td><td>'+esc(t.buyer||"—")+'</td><td>'+esc(t.location||"—")+'</td><td>'+esc(t.category||"—")+'</td><td>'+fmt(t.bid_end_date)+'</td><td>'+esc(tierNote)+'</td></tr>';
   }).join(""):'<tr><td colspan="6" class="empty">No unverified leads.</td></tr>';
-  $("foot").textContent='Showing '+list.length+' of '+tenders.length+' tenders · Last scan: '+(status.last_scan_ist||"not yet run")+' · '+(status.warning||"");
+  $("foot").textContent='Showing '+list.length+' verified matches · '+tenders.filter(t=>!isQualified(t)).length+' unverified leads · Last scan: '+(status.last_scan_ist||"not yet run")+' · '+(status.warning||"");
   $("rows").onclick=e=>{const preview=e.target.closest("button[data-pdf]");if(preview){viewPdf(preview.getAttribute("data-pdf"),preview.getAttribute("data-title"));return;}const download=e.target.closest("button[data-download-pdf]");if(download)downloadOriginalPdf(download.getAttribute("data-download-pdf"),download.getAttribute("data-filename"),download);};
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
