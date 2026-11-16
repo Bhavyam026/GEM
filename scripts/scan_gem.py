@@ -167,6 +167,16 @@ def category_for(text):
     return ""
 
 
+def q_tier_for(*sources):
+    """Return Q3 only when explicitly evidenced; Q2 is rejected, conflicts are manual."""
+    text = " ".join(clean(source) for source in sources if source)
+    tiers = set(re.findall(r"\\bQ\\s*[-:]?\\s*([234])\\b", text, re.I))
+    if len(tiers) != 1:
+        return "manual_review"
+    tier = next(iter(tiers))
+    return "Q" + tier if tier == "3" else "rejected"
+
+
 def location_matches(text):
     low = clean(text).lower()
     matches = []
@@ -388,8 +398,16 @@ def scan_buyer(session, buyer_key, counters):
             # not just the search result row (which may omit the organisation).
             if not buyer_matches(buyer_key, buyer_field_text(doc, fields), detail_text, " ".join(pdf_texts)):
                 continue
+            # Q3 is the required GeM category tier. Q2 and other tiers are
+            # excluded; missing/conflicting tier evidence is not auto-published.
+            q_tier = q_tier_for(fields["category_raw"], detail_text, " ".join(pdf_texts))
+            if q_tier != "Q3":
+                continue
+
             category = category_for(combined)
-            locations = location_matches(combined)
+            # Geography must be evidenced by text extracted from the official
+            # downloaded GeM PDF, not merely the listing/search result.
+            locations = location_matches(" ".join(pdf_texts))
             if not category or not locations:
                 continue
 
@@ -400,6 +418,7 @@ def scan_buyer(session, buyer_key, counters):
                 "buyer_code": buyer_key,
                 "location": " / ".join(locations),
                 "category": category,
+                "gem_category_tier": q_tier,
                 "bid_start_date": parse_date(fields["start"]),
                 "bid_end_date": parse_date(fields["end"]),
                 "url": BASE + "/showbidDocument/" + bid_id,
