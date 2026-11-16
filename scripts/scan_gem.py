@@ -51,12 +51,13 @@ BUYERS = {
 }
 
 SEARCH_TERMS = {
-    "AMC & Maintenance": ("Annual Maintenance Contract", "Annual Maintenance", "AMC", "Comprehensive Annual Maintenance", "Comprehensive Maintenance Contract", "CAMC", "CMC", "Operation and Maintenance", "O&M", "Maintenance Services", "Maintenance Contract"),
+    # Specific equipment/work categories take precedence over generic AMC/O&M wording.
     "CCTV & Surveillance": ("CCTV", "NVR", "DVR", "IP Camera", "Video Surveillance", "Surveillance Camera"),
     "Networking": ("Networking", "LAN Switch", "Router", "Optical Fiber", "Network Switch", "Firewall"),
-    "Electrical": ("Electrical Panel", "PLC SCADA", "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture"),
+    "Electrical": ("O&M of Electrical Work", "Electrical Work", "Electrical Panel", "PLC SCADA", "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture"),
     "Fire Safety": ("Fire Alarm", "Fire Safety", "Fire Extinguisher", "Smoke Detector", "Fire Detection"),
     "IT Assets": ("Desktop Computer", "Laptop", "Computer Monitor", "Printer", "IT Equipment", "Server"),
+    "AMC & Maintenance": ("Annual Maintenance Contract", "Annual Maintenance", "AMC", "Comprehensive Annual Maintenance", "Comprehensive Maintenance Contract", "CAMC", "CMC", "Operation and Maintenance", "O&M", "Maintenance Services", "Maintenance Contract"),
 }
 
 
@@ -398,13 +399,14 @@ def scan_buyer(session, buyer_key, counters):
             # not just the search result row (which may omit the organisation).
             if not buyer_matches(buyer_key, buyer_field_text(doc, fields), detail_text, " ".join(pdf_texts)):
                 continue
-            # Q3 is the required GeM category tier. Q2 and other tiers are
-            # excluded; missing/conflicting tier evidence is not auto-published.
-            q_tier = q_tier_for(fields["category_raw"], detail_text, " ".join(pdf_texts))
-            if q_tier != "Q3":
-                continue
-
             category = category_for(combined)
+            # The Q3-only rule applies to CCTV product/category bids only.
+            # Facility-management and other service tenders have no Q-tier gate.
+            q_tier = "Not applicable"
+            if category == "CCTV & Surveillance":
+                q_tier = q_tier_for(fields["category_raw"], detail_text, " ".join(pdf_texts))
+                if q_tier != "Q3":
+                    continue
             # Geography must be evidenced by text extracted from the official
             # downloaded GeM PDF, not merely the listing/search result.
             locations = location_matches(" ".join(pdf_texts))
@@ -416,6 +418,7 @@ def scan_buyer(session, buyer_key, counters):
                 "title": fields["title"] or fields["category_raw"] or "GeM tender",
                 "buyer": buyer_name,
                 "buyer_code": buyer_key,
+                "office_name": "",
                 "location": " / ".join(locations),
                 "category": category,
                 "gem_category_tier": q_tier,
