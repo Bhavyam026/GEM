@@ -164,7 +164,7 @@ def target_ministry_department(ministry, department, *detail_sources):
     """Require the exact PMO / Department of Atomic Energy scope."""
     ministry_text = normalize(" ".join([clean(ministry), *[clean(x) for x in detail_sources if x]]))
     department_text = normalize(" ".join([clean(department), *[clean(x) for x in detail_sources if x]]))
-    pmo_ok = bool(re.search(r"\\bpmo\\b", ministry_text)) or "prime minister s office" in ministry_text
+    pmo_ok = bool(re.search(r"\bpmo\b", ministry_text)) or "prime minister s office" in ministry_text
     department_ok = "department of atomic energy" in department_text
     return pmo_ok and department_ok
 
