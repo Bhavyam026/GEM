@@ -194,6 +194,21 @@ def parse_date(value):
                 pass
     return value
 
+def bid_is_active(value):
+    """Keep date-only deadlines through the end of that IST day."""
+    value = clean(value)
+    if not value:
+        return True
+    try:
+        if re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", value):
+            return datetime.strptime(value, "%Y-%m-%d").date() >= now_ist().date()
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=IST)
+        return dt.astimezone(IST) >= now_ist()
+    except ValueError:
+        return True
+
 
 class TextOnly(HTMLParser):
     def __init__(self):
@@ -345,8 +360,8 @@ def scan_buyer(session, buyer_key, counters):
                 parser = TextOnly()
                 parser.feed(detail_html)
                 detail_text = parser.text()
-                pdf_texts, pdf_urls, pdf_errors = extract_detail_documents(
-                    detail_html, BASE + "/showbidDocument/" + bid_id, session
+                pdf_texts, pdf_urls, pdf_errors, pdf_local_path = extract_detail_documents(
+                    detail_html, BASE + "/showbidDocument/" + bid_id, session, bid_number
                 )
                 counters["pdfs_checked"] += len(pdf_urls)
                 if pdf_errors:
@@ -358,7 +373,7 @@ def scan_buyer(session, buyer_key, counters):
                     f"{bid_number or bid_id}: detail/PDF check incomplete: {str(exc)[:140]}"
                 )
                 detail_text = ""
-                pdf_texts, pdf_urls = [], []
+                pdf_texts, pdf_urls, pdf_local_path = [], [], ""
             finally:
                 time.sleep(REQUEST_DELAY)
 
@@ -387,6 +402,8 @@ def scan_buyer(session, buyer_key, counters):
                 "url": BASE + "/showbidDocument/" + bid_id,
                 "pdf_url": pdf_urls[0] if pdf_urls else "",
                 "pdf_count": len(pdf_urls),
+                "pdf_local_path": pdf_local_path,
+                "pdf_verified": bool(pdf_local_path),
                 "is_priority": True,
                 "verification_status": "Official GeM listing checked",
                 "source_type": "Official GeM public listing",
@@ -439,11 +456,27 @@ def main():
             item["first_seen"] = old_item.get("first_seen") or item["first_seen"]
             item["is_new"] = key not in previous
 
+        # Expired tenders and their PDF copies leave the active dashboard.
+        active_found = {
+            key: item for key, item in found.items()
+            if bid_is_active(item.get("bid_end_date", ""))
+        }
         output = sorted(
-            found.values(),
+            active_found.values(),
             key=lambda item: (item.get("bid_end_date") or "9999", item.get("buyer_code", ""), item.get("title", "")),
         )
         tenders_path.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        # Cleanup is deliberately after a complete successful scan only.
+        keep_pdfs = {
+            str(item.get("pdf_local_path", ""))
+            for item in output if item.get("pdf_verified") is True
+        }
+        pdf_dir = DATA / "pdfs"
+        if pdf_dir.exists():
+            for pdf_file in pdf_dir.glob("*.pdf"):
+                relative = "data/pdfs/" + pdf_file.name
+                if relative not in keep_pdfs:
+                    pdf_file.unlink()
         status = {
             "last_scan_success": True,
             "last_scan_ist": now_ist().strftime("%d-%b-%Y %I:%M:%S %p IST"),
