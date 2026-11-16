@@ -156,8 +156,9 @@ def buyer_field_text(doc, fields):
 
 def buyer_matches(buyer_key, buyer_fields, *detail_sources):
     all_text = " ".join(clean(source) for source in (buyer_fields, *detail_sources) if source)
-    full_name = normalize(BUYERS[buyer_key]["name"])
-    if full_name and full_name in normalize(all_text):
+    normalized_text = normalize(all_text)
+    aliases = BUYERS[buyer_key].get("aliases", (BUYERS[buyer_key]["name"],))
+    if any(normalize(alias) and normalize(alias) in normalized_text for alias in aliases):
         return True
     # Accept an acronym only from explicit buyer/organisation fields, never
     # merely because it appears somewhere in a technical specification.
