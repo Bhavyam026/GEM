@@ -1,13 +1,85 @@
 import unittest
 import tempfile
+import json
+from urllib.parse import parse_qs
 from pathlib import Path
 
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
     buyer_matches, category_for, location_matches, q_tier_for, office_name_for, bid_is_active,
-    target_ministry_department,
+    target_ministry_department, BUYERS, GeMSession, SEARCH_API, ADVANCE_SEARCH,
 )
 from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
+
+
+
+class AdvanceSearchApiTests(unittest.TestCase):
+    def test_exact_organization_payloads_for_all_three_buyers(self):
+        expected = {
+            "NPCIL": "NUCLEAR POWER CORPORATION OF INDIA LIMITED",
+            "BARC": "Bhabha Atomic Research Centre",
+            "AEES": "Atomic Energy Education Society (AEES)",
+        }
+        for buyer, organization in expected.items():
+            payload = GeMSession.build_advance_payload(buyer, 1)
+            self.assertEqual(payload, {
+                "searchType": "ministry-search",
+                "ministry": "PMO",
+                "buyerState": "",
+                "organization": organization,
+                "department": "Department of Atomic Energy",
+                "bidEndFromMin": "",
+                "bidEndToMin": "",
+                "page": 1,
+            })
+            self.assertEqual(BUYERS[buyer]["organization"], organization)
+
+    def test_page_two_uses_same_organization_and_page_number_two(self):
+        payload = GeMSession.build_advance_payload("NPCIL", 2)
+        self.assertEqual(payload["organization"], "NUCLEAR POWER CORPORATION OF INDIA LIMITED")
+        self.assertEqual(payload["page"], 2)
+        self.assertEqual(payload["searchType"], "ministry-search")
+
+    def test_search_posts_form_payload_to_advance_search_endpoint(self):
+        session = GeMSession()
+        session.csrf = "fresh-session-token"
+        captured = {}
+
+        def fake_request(url, data=None, headers=None, attempts=3):
+            captured["url"] = url
+            captured["form"] = parse_qs(data.decode("utf-8"))
+            captured["headers"] = headers
+            return json.dumps({
+                "code": 200,
+                "response": {"response": {
+                    "numFound": 448,
+                    "start": 10,
+                    "docs": [{"b_id": [123]}],
+                }},
+                "current_page": 1,
+            })
+
+        session.request = fake_request
+        result = session.search("NPCIL", 2)
+        sent_payload = json.loads(captured["form"]["payload"][0])
+        self.assertEqual(captured["url"], SEARCH_API)
+        self.assertEqual(captured["headers"]["Referer"], ADVANCE_SEARCH)
+        self.assertEqual(captured["form"]["csrf_bd_gem_nk"], ["fresh-session-token"])
+        self.assertEqual(sent_payload["organization"], "NUCLEAR POWER CORPORATION OF INDIA LIMITED")
+        self.assertEqual(sent_payload["page"], 2)
+        self.assertEqual(result["total"], 448)
+        self.assertEqual(result["start"], 10)
+        self.assertEqual(result["current_page"], 1)
+        self.assertEqual(len(result["docs"]), 1)
+
+    def test_csrf_is_read_from_fresh_advance_search_html(self):
+        session = GeMSession()
+        token = "a" * 32
+        session.request = lambda *args, **kwargs: (
+            '<input type="hidden" name="csrf_bd_gem_nk" value="' + token + '">'
+        )
+        session.init()
+        self.assertEqual(session.csrf, token)
 
 
 class DeduplicationTests(unittest.TestCase):
