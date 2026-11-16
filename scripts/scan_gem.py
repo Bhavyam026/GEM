@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 BASE = "https://bidplus.gem.gov.in"
 ALL_BIDS = BASE + "/all-bids"
-SEARCH_API = BASE + "/all-bids-data"
+SEARCH_API = BASE + "/search-bids"
 IST = ZoneInfo("Asia/Kolkata")
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
 REQUEST_DELAY = 0.75
@@ -37,18 +37,25 @@ MAX_PAGES_PER_BUYER = 500
 
 BUYERS = {
     "NPCIL": {
-        "name": "Nuclear Power Corporation of India Limited",
-        "aliases": ("Nuclear Power Corporation of India Limited", "NPCIL"),
+        "name": "NUCLEAR POWER CORPORATION OF INDIA LIMITED",
+        "organization": "NUCLEAR POWER CORPORATION OF INDIA LIMITED",
+        "aliases": ("NUCLEAR POWER CORPORATION OF INDIA LIMITED", "NPCIL"),
     },
     "BARC": {
         "name": "Bhabha Atomic Research Centre",
+        "organization": "Bhabha Atomic Research Centre",
         "aliases": ("Bhabha Atomic Research Centre", "BARC"),
     },
     "AEES": {
-        "name": "Atomic Energy Education Society",
-        "aliases": ("Atomic Energy Education Society", "AEES"),
+        "name": "Atomic Energy Education Society (AEES)",
+        "organization": "Atomic Energy Education Society (AEES)",
+        "aliases": ("Atomic Energy Education Society (AEES)", "Atomic Energy Education Society", "AEES"),
     },
 }
+
+MINISTRY = "PMO"
+DEPARTMENT = "Department of Atomic Energy"
+PAGE_SIZE = 10
 
 SEARCH_TERMS = {
     # Specific equipment/work categories take precedence over generic AMC/O&M wording.
@@ -304,25 +311,40 @@ class GeMSession:
         low = html.lower()
         if any(marker in low for marker in ("captcha", "access denied", "verify you are human")):
             raise AccessChallengeError("GeM displayed an access challenge; manual review required")
-        match = re.search(r"csrf_bd_gem_nk.*?'([a-f0-9]{32})'", html, re.I)
-        if not match:
-            raise RuntimeError("Could not find GeM public CSRF token; portal markup may have changed")
-        self.csrf = match.group(1)
+        token_patterns = (
+            r'name=["\']csrf_bd_gem_nk["\']\s+value=["\']([^"\']+)',
+            r'value=["\']([^"\']+)["\']\s+name=["\']csrf_bd_gem_nk["\']',
+            r'csrf_bd_gem_nk["\']?\s*[:=]\s*["\']([a-f0-9]{32})',
+        )
+        token = ""
+        for pattern in token_patterns:
+            match = re.search(pattern, html, re.I)
+            if match:
+                token = match.group(1)
+                break
+        if not token:
+            raise RuntimeError("Could not find GeM CSRF token in fresh public session; portal markup may have changed")
+        self.csrf = token
 
-    def search(self, term, page):
+    @staticmethod
+    def build_advance_payload(buyer_key, page):
+        if buyer_key not in BUYERS:
+            raise ValueError("Unsupported buyer: " + str(buyer_key))
+        return {
+            "searchType": "ministry-search",
+            "ministry": MINISTRY,
+            "buyerState": "",
+            "organization": BUYERS[buyer_key]["organization"],
+            "department": DEPARTMENT,
+            "bidEndFromMin": "",
+            "bidEndToMin": "",
+            "page": int(page),
+        }
+
+    def search(self, buyer_key, page):
         if not self.csrf:
             self.init()
-        payload = {
-            "page": page,
-            "param": {"searchBid": term, "searchType": "fullText"},
-            "filter": {
-                "bidStatusType": "ongoing_bids",
-                "byType": "all",
-                "highBidValue": "",
-                "byEndDate": {"from": "", "to": ""},
-                "sort": "Bid-End-Date-Latest",
-            },
-        }
+        payload = self.build_advance_payload(buyer_key, page)
         body = urlencode({
             "payload": json.dumps(payload, separators=(",", ":")),
             "csrf_bd_gem_nk": self.csrf,
@@ -331,20 +353,28 @@ class GeMSession:
             SEARCH_API,
             data=body,
             headers={
-                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Accept": "application/json",
-                "Referer": ALL_BIDS,
+                "Referer": BASE + "/advance-search",
                 "Origin": BASE,
                 "X-Requested-With": "XMLHttpRequest",
             },
         )
         data = json.loads(raw)
-        if data.get("code") in (404, "404"):
-            return 0, []
         if data.get("code") != 200:
-            raise RuntimeError("GeM search returned unexpected response code " + str(data.get("code")))
+            raise RuntimeError("GeM Advance Search returned unexpected response code " + str(data.get("code")))
         response = data.get("response", {}).get("response", {})
-        return int(response.get("numFound", 0)), response.get("docs", [])
+        if not isinstance(response, dict):
+            raise RuntimeError("GeM Advance Search response structure changed")
+        docs = response.get("docs")
+        if not isinstance(docs, list):
+            raise RuntimeError("GeM Advance Search did not return a docs array")
+        return {
+            "total": int(response.get("numFound", 0)),
+            "start": int(response.get("start", 0)),
+            "current_page": data.get("current_page"),
+            "docs": docs,
+        }
 
     def detail(self, bid_id):
         return self.request(
@@ -356,19 +386,33 @@ class GeMSession:
 def scan_buyer(session, buyer_key, counters):
     buyer_name = BUYERS[buyer_key]["name"]
     page = 1
-    total = None
+    total = 0
     records = {}
     while True:
         if page > MAX_PAGES_PER_BUYER:
             raise RuntimeError(f"{buyer_key}: exceeded safety limit of {MAX_PAGES_PER_BUYER} pages; scan marked incomplete")
-        page_total, docs = session.search(buyer_name, page)
+        result = session.search(buyer_key, page)
+        page_total, start, current_page, docs = (
+            result["total"], result["start"], result["current_page"], result["docs"]
+        )
+        expected_start = (page - 1) * PAGE_SIZE
+        if start != expected_start:
+            raise RuntimeError(
+                f"{buyer_key}: expected result start {expected_start} on page {page}, got {start}; scan incomplete"
+            )
+        if current_page is not None and int(current_page) != page - 1:
+            raise RuntimeError(
+                f"{buyer_key}: GeM current_page mismatch on page {page}; scan incomplete"
+            )
+        # GeM's observed numFound changed between adjacent requests (447/448).
+        # Retain the largest count seen so pagination cannot stop prematurely.
+        total = max(total, page_total)
         counters["pages_scanned"] += 1
-        total = page_total if total is None else total
         counters["records_seen"] += len(docs)
         if not docs:
             if page == 1 and total == 0:
                 break
-            if page * 10 < total:
+            if start < total:
                 raise RuntimeError(f"{buyer_key}: page {page} was empty before reported total {total}; incomplete scan")
             break
 
@@ -459,9 +503,9 @@ def scan_buyer(session, buyer_key, counters):
             records[key] = record
             time.sleep(REQUEST_DELAY)
 
-        if page * 10 >= total:
+        if start + len(docs) >= total:
             break
-        if len(docs) < 10:
+        if len(docs) < PAGE_SIZE:
             raise RuntimeError(
                 f"{buyer_key}: only {len(docs)} records on page {page} while total={total}; refusing an incomplete scan"
             )
