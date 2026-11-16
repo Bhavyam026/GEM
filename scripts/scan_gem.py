@@ -53,7 +53,7 @@ BUYERS = {
 SEARCH_TERMS = {
     # Specific equipment/work categories take precedence over generic AMC/O&M wording.
     "CCTV & Surveillance": ("CCTV", "NVR", "DVR", "IP Camera", "Video Surveillance", "Surveillance Camera"),
-    "Networking": ("Networking", "LAN Switch", "Router", "Optical Fiber", "Network Switch", "Firewall"),
+    "Networking": ("Networking", "Network equipment", "Network", "LAN Switch", "Router", "Optical Fiber", "Network Switch", "Firewall"),
     "Electrical": ("O&M of Electrical Work", "Electrical Work", "Electrical Panel", "PLC SCADA", "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture"),
     "Fire Safety": ("Fire Alarm", "Fire Safety", "Fire Extinguisher", "Smoke Detector", "Fire Detection"),
     "IT Assets": ("Desktop Computer", "Laptop", "Computer Monitor", "Printer", "IT Equipment", "Server"),
