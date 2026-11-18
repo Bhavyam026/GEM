@@ -11,14 +11,13 @@ import json
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import HTTPCookieProcessor, Request, build_opener
 from http.cookiejar import CookieJar
-from zoneinfo import ZoneInfo
 
 try:
     from scripts.pdf_extract import extract_detail_documents
@@ -31,7 +30,7 @@ BASE = "https://bidplus.gem.gov.in"
 ALL_BIDS = BASE + "/all-bids"
 ADVANCE_SEARCH = BASE + "/advance-search"
 SEARCH_API = BASE + "/search-bids"
-IST = ZoneInfo("Asia/Kolkata")
+IST = timezone(timedelta(hours=5, minutes=30), name="IST")
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
 REQUEST_DELAY = 0.75
 MAX_PAGES_PER_BUYER = 500
