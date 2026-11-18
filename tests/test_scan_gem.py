@@ -7,7 +7,7 @@ from pathlib import Path
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
     buyer_matches, category_for, location_matches, q_tier_for, office_name_for, bid_is_active,
-    target_ministry_department, BUYERS, GeMSession, SEARCH_API, ADVANCE_SEARCH,
+    target_ministry_department, BUYERS, GeMSession, SEARCH_API, ADVANCE_SEARCH, TextOnly,
 )
 from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
 
@@ -148,6 +148,16 @@ class BuyerAndCategoryTests(unittest.TestCase):
 
 
 class PdfLinkTests(unittest.TestCase):
+    def test_python38_conditional_marked_sections_do_not_crash_text_parser(self):
+        parser = TextOnly()
+        parser.feed("<![if !IE]><div>Public tender details</div><![endif]>")
+        self.assertIn("Public tender details", parser.text())
+
+    def test_python38_conditional_marked_sections_do_not_crash_pdf_link_parser(self):
+        parser = TenderLinks("https://bidplus.gem.gov.in/showbidDocument/1")
+        parser.feed('<![if !IE]><a href="/download/abc.pdf">Download PDF</a><![endif]>')
+        self.assertEqual(parser.links, ["https://bidplus.gem.gov.in/download/abc.pdf"])
+
     def test_pdf_filename_is_safely_mapped_to_bid_number(self):
         self.assertEqual(safe_pdf_filename("GEM/2026/B/12345"), "GEM_2026_B_12345.pdf")
 
