@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions
+set "PYTHONDONTWRITEBYTECODE=1"
 cd /d "%~dp0"
 if not exist ".git" (
   echo ERROR: Run this file from the root of the Bhavyam026/GEM repository.
