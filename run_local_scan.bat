@@ -5,8 +5,8 @@ if not exist ".git" (
   echo ERROR: Run this file from the root of the Bhavyam026/GEM repository.
   exit /b 10
 )
-if not exist "logs" mkdir "logs"
-set "LOG_FILE=%~dp0logs\local-scan.log"
+if not exist "%USERPROFILE%\GeM-Logs" mkdir "%USERPROFILE%\GeM-Logs"
+set "LOG_FILE=%USERPROFILE%\GeM-Logs\local-scan.log"
 call :main >> "%LOG_FILE%" 2>&1
 set "RESULT=%ERRORLEVEL%"
 echo.
