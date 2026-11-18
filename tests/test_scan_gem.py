@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import tempfile
 import json
 from urllib.parse import parse_qs
@@ -7,9 +8,9 @@ from pathlib import Path
 from scripts.scan_gem import (
     normalize_bid_number, record_key, dedupe_records,
     buyer_matches, category_for, location_matches, q_tier_for, office_name_for, bid_is_active,
-    target_ministry_department, BUYERS, GeMSession, SEARCH_API, ADVANCE_SEARCH, TextOnly,
+    target_ministry_department, location_evidence_text, BUYERS, GeMSession, SEARCH_API, ADVANCE_SEARCH, TextOnly,
 )
-from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf
+from scripts.pdf_extract import TenderLinks, safe_pdf_filename, save_original_pdf, extract_pdf_text
 
 
 
@@ -125,8 +126,19 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(category_for("Supply of IP CCTV cameras"), "CCTV & Surveillance")
         self.assertEqual(category_for("Supply of LAN Switches"), "Networking")
         self.assertEqual(category_for("Facility Management Service; O&M of Electrical Work; Skilled"), "Electrical")
+        self.assertEqual(category_for("Supply of ceiling fans, LED bulbs and MCBs"), "Electrical")
         self.assertEqual(category_for("Fire alarm and smoke detector"), "Fire Safety")
         self.assertEqual(category_for("unrelated stationery"), "")
+
+    def test_geography_uses_consignee_section_not_incidental_pdf_mentions(self):
+        source = (
+            "General clause mentions Mumbai 400094. "
+            "Consignees/Reporting Officer and Quantity "
+            "Consignee Address: Tarapur Site, Boisar, Palghar 401504 "
+            "Buyer Added Bid Specific Terms and Conditions"
+        )
+        evidence = location_evidence_text(source)
+        self.assertEqual(location_matches(evidence), ["Palghar", "Boisar"])
 
     def test_office_name_is_separate_from_buyer_organisation(self):
         self.assertEqual(office_name_for("Organisation Name Bhabha Atomic Research Centre Office Name Nrb Contact details"), "Nrb")
@@ -143,6 +155,7 @@ class BuyerAndCategoryTests(unittest.TestCase):
         self.assertEqual(location_matches("Delivery at Tarapur Site, Boisar, Palghar 401504"),
                          ["Palghar", "Boisar"])
         self.assertEqual(location_matches("Mumbai 400094"), ["Mumbai"])
+        self.assertEqual(location_matches("Navi Mumbai 400703"), ["Navi Mumbai"])
         self.assertEqual(location_matches("Thane 400601"), [])
         self.assertEqual(location_matches("Chennai 600001"), [])
 
@@ -157,6 +170,20 @@ class PdfLinkTests(unittest.TestCase):
         parser = TenderLinks("https://bidplus.gem.gov.in/showbidDocument/1")
         parser.feed('<![if !IE]><a href="/download/abc.pdf">Download PDF</a><![endif]>')
         self.assertEqual(parser.links, ["https://bidplus.gem.gov.in/download/abc.pdf"])
+
+    def test_pdf_text_extraction_uses_layout_mode_for_consignee_fields(self):
+        class FakePage:
+            def extract_text(self, **kwargs):
+                if kwargs.get("extraction_mode") != "layout":
+                    raise AssertionError("layout extraction mode was not requested")
+                return "Consignees/Reporting Officer and Quantity\\nPalghar 401504"
+
+        class FakeReader:
+            pages = [FakePage()]
+
+        with patch("pypdf.PdfReader", return_value=FakeReader()):
+            extracted = extract_pdf_text(b"%PDF-test")
+        self.assertIn("Palghar 401504", extracted)
 
     def test_pdf_filename_is_safely_mapped_to_bid_number(self):
         self.assertEqual(safe_pdf_filename("GEM/2026/B/12345"), "GEM_2026_B_12345.pdf")
