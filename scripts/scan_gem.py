@@ -11,6 +11,7 @@ import json
 import re
 import sys
 import time
+import traceback
 from datetime import datetime, timezone, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
@@ -457,8 +458,11 @@ def scan_buyer(session, buyer_key, counters):
             except AccessChallengeError:
                 raise
             except Exception as exc:
+                # Preserve the actual traceback: the previous warning-only
+                # handling hid the source of runtime failures on Python 3.8.
+                trace = " | ".join(line.strip() for line in traceback.format_exc().strip().splitlines()[-4:])
                 counters["warnings"].append(
-                    f"{bid_number or bid_id}: detail/PDF check incomplete: {str(exc)[:140]}"
+                    f"{bid_number or bid_id}: {type(exc).__name__}: {str(exc)[:180]} | TRACE: {trace[:700]}"
                 )
                 detail_text = ""
                 pdf_texts, pdf_urls, pdf_local_path = [], [], ""
@@ -555,6 +559,19 @@ def main():
             found.update(buyer_records)
             # Keep the organizations strictly sequential, never concurrent.
             time.sleep(REQUEST_DELAY)
+
+        # A paginated search is not a successful tender scan if detail/PDF
+        # verification raised errors. Fail closed and retain the previous
+        # tender JSON rather than publishing an empty/partial replacement.
+        if counters["warnings"]:
+            raise RuntimeError(
+                "Detail/PDF verification incomplete; previous tender data preserved. "
+                + " | ".join(counters["warnings"][:3])
+            )
+        if counters["pdfs_checked"] == 0:
+            raise RuntimeError(
+                "No official GeM PDFs were verified; previous tender data preserved."
+            )
 
         for key, item in found.items():
             old_item = previous.get(key, {})
