@@ -16,8 +16,16 @@ class TenderLinks(HTMLParser):
         self.current_href = ""
         self.current_text = ""
 
-    # Python 3.8's HTMLParser can call this legacy ParserBase hook
-    # when GeM returns imperfect HTML. Continue parsing recoverable content.
+    # GeM sometimes includes legacy conditional/marked-section declarations
+    # (for example <![if ...]>). Python 3.8's ParserBase does not reliably
+    # handle unknown marked-section names and can raise TypeError. Consume
+    # only the declaration wrapper, then continue parsing its HTML contents.
+    def parse_html_declaration(self, i):
+        if self.rawdata.startswith("<![", i):
+            end = self.rawdata.find(">", i + 3)
+            return -1 if end < 0 else end + 1
+        return super().parse_html_declaration(i)
+
     def error(self, message):
         return
 
