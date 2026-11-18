@@ -1,0 +1,37 @@
+GeM LOCAL AUTO-SCAN — WINDOWS 7 / PYTHON 3.8
+
+WHAT IT DOES
+- Runs the existing official GeM Advance Search scanner for NPCIL, BARC and AEES.
+- Uses the existing pagination, buyer checks, official PDF byte verification, Mumbai/Palghar/Boisar PDF-location checks, and CCTV Q3-only rule.
+- On a complete scan, updates data/tenders.json and official PDF copies.
+- On an incomplete scan, preserves previous tender data and publishes only the failed scan status.
+- Pushes data to the Bhavyam026/GEM GitHub repository. The configured dashboard deployment can then publish the updated data.
+
+IMPORTANT
+- This is not a browser-click/Playwright bot. The scanner uses the public GeM Advance Search request flow already implemented in scripts/scan_gem.py.
+- It does not bypass CAPTCHA, login, OTP, access restrictions, or rate limits. If GeM refuses the PC's connection or shows an access challenge, the scan stops safely.
+- Do not put a GitHub token/password inside any .bat or .py file.
+- The PC must be on and connected to the internet at scheduled times.
+- Never run this against the DTS service/repository.
+
+SETUP
+1. Install/use Python 3.8.x and Git for Windows. Confirm both commands work in Command Prompt:
+     python --version
+     git --version
+2. Clone the repository if it is not already on this PC:
+     git clone https://github.com/Bhavyam026/GEM.git
+3. Copy these three .bat files into the repository root (same folder as index.html and requirements.txt).
+4. Open Git Bash or Command Prompt in that folder and authenticate GitHub once. A simple test is:
+     git pull origin main
+     git push origin main
+   Use a supported saved Git credential method. Do not paste credentials into chat or files.
+5. Run run_local_scan.bat manually. Check logs\local-scan.log and confirm the scan completed and git push succeeded.
+6. Only after the manual run succeeds, double-click install_local_scan_task.bat. It creates 30 weekly tasks: 09:00, 11:00, 13:00, 15:00 and 17:00, Monday-Saturday.
+7. In Windows Task Scheduler, verify the tasks exist and their Last Run Result after the next scheduled time.
+8. To remove all created tasks, run remove_local_scan_tasks.bat.
+
+NOTES
+- The script pulls the latest main branch before each scan. Keep the local repository clean; it will stop if it finds uncommitted changes.
+- If GitHub authentication is not saved, the scheduled push will fail. Authenticate interactively once before enabling the schedule.
+- A successful Git push triggers the repository's GitHub Pages data deployment. Render's static site updates only if its GitHub auto-deploy setting is enabled.
+- A successful GitHub push is not proof that the GeM scan succeeded. Check data/status.json and logs\local-scan.log.
