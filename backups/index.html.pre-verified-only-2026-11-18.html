@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1220"><title>GeM | Mumbai–Palghar Tender Intelligence</title>
+<style>
+:root{color-scheme:dark;--bg:#080e19;--panel:#111b2b;--line:#24344a;--muted:#94a3b8;--text:#eef4ff;--blue:#60a5fa;--green:#34d399;--amber:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#132845 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,Arial}
+header{padding:28px max(20px,calc((100vw - 1200px)/2));border-bottom:1px solid var(--line);background:#0b1423cc}
+.brand{font-size:12px;letter-spacing:.18em;color:var(--blue);font-weight:800}.hero{display:flex;justify-content:space-between;gap:20px;align-items:end;flex-wrap:wrap}h1{font-size:clamp(26px,4vw,40px);line-height:1.1;margin:10px 0}p{color:var(--muted);margin:6px 0}.wrap{max-width:1200px;margin:auto;padding:24px 20px 60px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.pill,.tab{border:1px solid var(--line);border-radius:999px;padding:7px 12px;color:#cbd5e1;background:#111b2b;font-size:13px}.pill b{color:var(--green)}
+.statusline{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--amber)}.dot.ok{background:var(--green)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.metric,.panel{background:linear-gradient(145deg,#142238,#0e1726);border:1px solid var(--line);border-radius:16px;padding:17px}.metric small{color:var(--muted)}.metric strong{display:block;font-size:28px;margin-top:5px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.controls input,.controls select{background:#0e1726;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 13px;min-width:150px}.controls input{flex:1;min-width:220px}.exportbtn{border:1px solid #2563eb;background:#1d4ed8;color:white;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}.exportbtn:hover{background:#1e40af}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.tab{cursor:pointer}.tab.active{background:#1d416b;border-color:#3979bb;color:white}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{border-collapse:collapse;width:100%;min-width:780px;background:#0e1726}th,td{text-align:left;padding:13px 14px;border-bottom:1px solid #1d2a3d;vertical-align:top}th{font-size:12px;color:#9fb2ca;text-transform:uppercase;letter-spacing:.07em;background:#121f32}td{font-size:14px}a{color:#8ec5ff;text-decoration:none}a:hover{text-decoration:underline}.tag{display:inline-block;padding:3px 8px;border-radius:20px;background:#1b314c;color:#b9d9ff;font-size:11px;margin:2px}.priority{background:#3b2d12;color:#fcd34d}.empty{text-align:center;padding:45px;color:var(--muted)}.foot{margin-top:18px;color:#718198;font-size:12px}.pdf-actions{display:flex;gap:6px;flex-wrap:wrap}.pdf-actions a,.pdf-actions button{border:1px solid #31577d;background:#142a42;color:#b9dcff;border-radius:7px;padding:6px 9px;font:inherit;font-size:12px;cursor:pointer}.pdf-actions a.download{border-color:#176b50;background:#103729;color:#9ff0cb}dialog{width:min(1000px,94vw);height:min(850px,92vh);padding:0;border:1px solid var(--line);border-radius:14px;background:#0e1726;color:var(--text)}dialog::backdrop{background:#020617d9}.pdf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}.pdf-head button{background:#1d416b;color:white;border:1px solid #3979bb;border-radius:8px;padding:7px 12px;cursor:pointer}dialog iframe{width:100%;height:calc(100% - 52px);border:0;background:white}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(2,1fr)}header{padding:22px 20px}}
+</style></head>
+<body>
+<header><div class="hero"><div><div class="brand">TENDER INTELLIGENCE / INDIA</div><h1>GeM Mumbai–Palghar Tracker</h1><p>Official GeM watchlist for CCTV, networking, electrical, fire safety, IT & AMC tenders.</p><div class="pills"><span class="pill">📍 Mumbai + Palghar + Boisar</span><span class="pill">🕘 9 AM–6 PM IST</span><span class="pill">Mon–Sat hourly scans</span></div></div><div class="statusline"><span class="dot" id="dot"></span><span id="scanStatus">Loading scan status…</span></div></div></header>
+<main class="wrap">
+<div class="panel" id="scanWarning" hidden style="margin:18px 0;border-color:#8a641d"><b style="color:#fbbf24">Scan status / data freshness</b><p id="scanWarningText"></p></div>
+<section class="metrics"><div class="metric"><small>Total matching tenders</small><strong id="total">—</strong></div><div class="metric"><small>New in latest scan</small><strong id="newCount">—</strong></div><div class="metric"><small>Closing in 7 days</small><strong id="closing">—</strong></div><div class="metric"><small>Priority buyer tenders</small><strong id="priority">—</strong></div></section>
+<div class="panel" id="candidatePanel" hidden style="margin-bottom:16px"><b>Unverified external leads — not counted as matching tenders</b><p>These leads are from secondary sources only. They are not confirmed as active on GeM and do not satisfy the official-PDF location check. CCTV leads remain excluded until Q3 is explicitly verified; Q2 is never accepted.</p><div class="tablewrap"><table><thead><tr><th>Bid / Lead</th><th>Buyer</th><th>Reported location</th><th>Category</th><th>Reported closing</th><th>Verification</th></tr></thead><tbody id="candidateRows"></tbody></table></div></div>
+<div class="panel"><b>Coverage</b><p>Only priority organisations: NPCIL, BARC and AEES. Only these three buyers are searched by full official name. Buyer or consignee/delivery/installation evidence must match Mumbai, Palghar or Boisar.</p></div><div class="panel" style="margin-top:12px;border-color:#8a641d"><b style="color:#fbbf24">⚠ Candidate tenders — Pending GeM Verification</b><p>All Tenders shows active candidates; New Tenders means added in the last 7 days; Closing Soon means bid deadline within 7 days; Priority Buyers filters NPCIL, BARC and AEES. Secondary listings remain clearly marked until verified on GeM. Verified original PDFs can be previewed and downloaded from inside this dashboard. If a PDF is unavailable, the dashboard will say so without redirecting you.</p></div>
+<div class="controls"><input id="search" placeholder="Search bid number, title, buyer…"><select id="category"><option value="">All categories</option><option>AMC & Maintenance</option><option>CCTV & Surveillance</option><option>Networking</option><option>Electrical</option><option>Fire Safety</option><option>IT Assets</option></select><select id="location"><option value="">Mumbai + Palghar + Boisar</option><option>Mumbai</option><option>Palghar</option><option>Boisar</option></select><select id="buyer"><option value="">All buyers</option><option>NPCIL</option><option>BARC</option><option>AEES</option></select></div>
+<nav class="tabs"><button class="tab active" data-tab="all">All Tenders</button><button class="tab" data-tab="new">New Tenders</button><button class="tab" data-tab="closing">Closing Soon</button><button class="tab" data-tab="priority">Priority Buyers</button></nav>
+<div class="tablewrap"><table><thead><tr><th>Bid / Tender</th><th>Buyer</th><th>Location</th><th>Category</th><th>Bid end</th><th>Added</th><th>Tender PDF / Documents</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="empty">Loading tender data…</td></tr></tbody></table></div>
+<div class="foot" id="foot">New = added in last 7 days · Closing Soon = deadline within 7 days · Expired bids are hidden from active lists. Secondary listings are not official confirmation.</div>
+</main>
+<dialog id="pdfDialog"><div class="pdf-head"><b id="pdfTitle">Tender PDF</b><div><button type="button" onclick="closePdf()">Close</button></div></div><iframe id="pdfFrame" title="Tender PDF preview"></iframe></dialog>
+
+<script>
+const $=id=>document.getElementById(id);let tenders=[],active="all",status={};
+function isQualified(t){return t.source_type==="Official GeM public listing"&&t.pdf_verified===true&&/^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(t.pdf_local_path||"");}
+const dateVal=s=>{if(!s)return null;const d=new Date(s);return isNaN(d)?null:d};
+const fmt=s=>{const d=dateVal(s);return d?d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):(s||"—")};
+function tenderKey(t){const bid=String(t.bid_number||"").toUpperCase().replace(/\s+/g,"");if(bid)return "bid:"+bid;const url=String(t.url||"").split("#")[0].split("?")[0].replace(/\/$/,"").toLowerCase();return url?"url:"+url:"title:"+String(t.title||"").trim().toLowerCase();}
+function dedupeTenders(items){const map=new Map();for(const t of items||[]){if(!t||typeof t!=="object")continue;const key=tenderKey(t);if(map.has(key)){const old=map.get(key);const first=old.first_seen||t.first_seen;map.set(key,{...old,...t,first_seen:first});}else map.set(key,t);}return [...map.values()];}
+function daysFromNow(s){const d=dateVal(s);return d?(d-new Date())/86400000:null;}
+function isPriorityBuyer(t){const b=(t.buyer_code||t.buyer||"").toUpperCase();return ["NPCIL","BARC","AEES"].some(x=>b.includes(x));}
+function isRecentlyAdded(t){const d=dateVal(t.first_seen);if(!d)return !!t.is_new;const age=(new Date().setHours(0,0,0,0)-new Date(d).setHours(0,0,0,0))/86400000;return age>=0&&age<=7;}
+function getFiltered(){let q=$("search").value.toLowerCase(),cat=$("category").value,loc=$("location").value,buy=$("buyer").value;
+return tenders.filter(isQualified).filter(t=>{let text=[t.title,t.bid_number,t.buyer,t.location].join(" ").toLowerCase();let days=daysFromNow(t.bid_end_date);let activeBid=days===null||days>=0;return activeBid&&(!q||text.includes(q))&&(!cat||t.category===cat)&&(!loc||(t.location||"").toLowerCase().includes(loc.toLowerCase()))&&(!buy||(t.buyer||"").toUpperCase().includes(buy))&&(active!=="new"||isRecentlyAdded(t))&&(active!=="closing"||days!==null&&days>=0&&days<=7)&&(active!=="priority"||isPriorityBuyer(t));});}
+function render(){
+  const list=getFiltered();
+  $("rows").innerHTML=list.length?list.map(t=>{
+    
+    const localPdfPath=t.pdf_local_path||"";
+    const pdfUrl=t.pdf_verified===true && /^data\/pdfs\/[A-Za-z0-9_.-]+\.pdf$/.test(localPdfPath) ? "https://raw.githubusercontent.com/Bhavyam026/GEM/main/"+localPdfPath : "";
+    const title=t.bid_number||t.title||"Tender PDF";
+    
+    const pdfActions=pdfUrl
+      ? '<div class="pdf-actions"><button type="button" data-pdf="'+esc(pdfUrl)+'" data-title="'+esc(title)+'">Preview original PDF</button><button type="button" class="download" data-download-pdf="'+esc(pdfUrl)+'" data-filename="'+esc(localPdfPath.split("/").pop()||"tender.pdf")+'">Download original PDF</button></div>'
+      : '<small>Original GeM PDF copy is not available yet. No external redirect is used.</small>';
+    return '<tr><td>'+esc(t.title||"Untitled bid")+'<br><small>'+esc(t.bid_number||"Bid number unavailable")+'</small><br><span class="tag">'+(String(t.source_type||"").toLowerCase().includes("secondary")?"Secondary listing":"Official GeM")+'</span>'+(t.verification_status?'<br><span class="tag priority">'+esc(t.verification_status)+'</span>':'')+'</td><td>'+esc(t.buyer||"—")+(t.office_name?'<br><small>Office: '+esc(t.office_name)+'</small>':'')+(t.is_priority?' <span class="tag priority">PRIORITY</span>':'')+'</td><td>'+esc(t.location||"—")+'</td><td><span class="tag">'+esc(t.category||"Other")+'</span></td><td>'+fmt(t.bid_end_date)+'</td><td>'+fmt(t.first_seen)+'</td><td>'+pdfActions+'</td></tr>';
+  }).join(""):'<tr><td colspan="7" class="empty">No tenders match these filters.</td></tr>';
+  const leads=tenders.filter(t=>!isQualified(t));
+  $("candidatePanel").hidden=leads.length===0;
+  $("candidateRows").innerHTML=leads.length?leads.map(t=>{
+    const tierNote=t.category==="CCTV & Surveillance"&&!/^Q3$/i.test(t.gem_category_tier||"")?"Q3 not confirmed — excluded":(t.verification_status||"Pending official GeM verification");
+    return '<tr><td>'+esc(t.bid_number||"Bid number unavailable")+'<br>'+esc(t.title||"Untitled lead")+'</td><td>'+esc(t.buyer||"—")+'</td><td>'+esc(t.location||"—")+'</td><td>'+esc(t.category||"—")+'</td><td>'+fmt(t.bid_end_date)+'</td><td>'+esc(tierNote)+'</td></tr>';
+  }).join(""):'<tr><td colspan="6" class="empty">No unverified leads.</td></tr>';
+  $("foot").textContent='Showing '+list.length+' verified matches · '+tenders.filter(t=>!isQualified(t)).length+' unverified leads · Last scan: '+(status.last_scan_ist||"not yet run")+' · '+(status.warning||"");
+  $("rows").onclick=e=>{const preview=e.target.closest("button[data-pdf]");if(preview){viewPdf(preview.getAttribute("data-pdf"),preview.getAttribute("data-title"));return;}const download=e.target.closest("button[data-download-pdf]");if(download)downloadOriginalPdf(download.getAttribute("data-download-pdf"),download.getAttribute("data-filename"),download);};
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function viewPdf(url,title){const d=$("pdfDialog");$("pdfTitle").textContent=title+" — Original GeM PDF preview";$("pdfFrame").src=url;if(typeof d.showModal==="function")d.showModal();else alert("Your browser does not support the in-dashboard PDF preview.");}
+async function downloadOriginalPdf(url,filename,button){
+  const label=button.textContent;button.disabled=true;button.textContent="Preparing download…";
+  try{
+    const response=await fetch(url,{cache:"no-store"});
+    if(!response.ok)throw new Error("PDF download returned HTTP "+response.status);
+    const blob=await response.blob();
+    if(blob.type&&blob.type!=="application/pdf"&&!blob.type.includes("octet-stream"))throw new Error("The downloaded file is not marked as a PDF");
+    const objectUrl=URL.createObjectURL(blob);const link=document.createElement("a");
+    link.href=objectUrl;link.download=filename||"tender.pdf";document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+  }catch(error){
+    alert("PDF download dashboard se start nahi ho paya. Koi doosri website nahi kholi gayi. Error: "+error.message);
+  }finally{button.disabled=false;button.textContent=label;}
+}
+function closePdf(){$("pdfFrame").src="about:blank";$("pdfDialog").close();}
+async function load(){try{let [a,b]=await Promise.all([fetch("data/tenders.json?x="+Date.now()),fetch("data/status.json?x="+Date.now())]);tenders=dedupeTenders(await a.json());status=await b.json();const activeTenders=tenders.filter(isQualified).filter(x=>{const d=daysFromNow(x.bid_end_date);return d===null||d>=0;});$("total").textContent=activeTenders.length;$("newCount").textContent=activeTenders.filter(isRecentlyAdded).length;$("closing").textContent=activeTenders.filter(x=>{const d=daysFromNow(x.bid_end_date);return d!==null&&d>=0&&d<=7}).length;$("priority").textContent=activeTenders.filter(isPriorityBuyer).length;
+$("scanStatus").textContent=status.last_scan_success===false?"Scan failed · "+(status.last_scan_ist||"check warning"):status.last_scan_ist?"Last scan "+status.last_scan_ist:"Waiting for first scan";
+$("dot").classList.toggle("ok",status.last_scan_success===true);
+if(status.last_scan_success===false){$("scanWarning").hidden=false;$("scanWarningText").textContent="Last attempt: "+(status.last_scan_ist||"unknown")+". Last successful scan: "+(status.last_success_ist||"None recorded")+". "+(status.warning||"Previous data has been preserved; current GeM availability is not confirmed.");}
+else{$("scanWarning").hidden=true;}
+render();}catch(e){$("rows").innerHTML='<tr><td colspan="7" class="empty">Tender data is not published yet. Run the GitHub Actions scanner first.</td></tr>';$("scanStatus").textContent="No scan data yet";}}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");active=b.dataset.tab;render();}));["search","category","location","buyer"].forEach(id=>$(id).addEventListener("input",render));load();
+</script></body></html>
