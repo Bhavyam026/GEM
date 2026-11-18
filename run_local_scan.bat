@@ -60,7 +60,7 @@ if errorlevel 1 (
 )
 
 echo Running official GeM Advance Search collector...
-python scripts\scan_gem.py
+py -3.8 scripts\scan_gem.py
 set "SCAN_RESULT=%ERRORLEVEL%"
 
 echo Staging tender data and scan status...
