@@ -1,7 +1,7 @@
 name: GeM Advance Search tests
 on:
   push:
-    branches: [fix/advance-search-api]
+    branches: [main, fix/advance-search-api]
     paths:
       - ".github/workflows/advance-search-tests.yml"
       - "scripts/scan_gem.py"
