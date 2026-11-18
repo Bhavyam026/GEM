@@ -5,13 +5,13 @@ WHAT IT DOES
 - Uses the existing pagination, buyer checks, official PDF byte verification, Mumbai/Palghar/Boisar PDF-location checks, and CCTV Q3-only rule.
 - On a complete scan, updates data/tenders.json and official PDF copies.
 - On an incomplete scan, preserves previous tender data and publishes only the failed scan status.
-- Pushes data to the Bhavyam026/GEM GitHub repository. The configured dashboard deployment can then publish the updated data.
+- Pushes data to the Bhavyam026/GEM GitHub repository. The Render static site is configured for automatic deploys from main, so a successful Git push should publish the updated data there.
 
 IMPORTANT
 - This is not a browser-click/Playwright bot. The scanner uses the public GeM Advance Search request flow already implemented in scripts/scan_gem.py.
 - It does not bypass CAPTCHA, login, OTP, access restrictions, or rate limits. If GeM refuses the PC's connection or shows an access challenge, the scan stops safely.
 - Do not put a GitHub token/password inside any .bat or .py file.
-- The PC must be on and connected to the internet at scheduled times.
+- The PC must be on, connected to the internet, and the Windows account must be logged in at scheduled times (the screen may be locked).
 - Never run this against the DTS service/repository.
 
 SETUP
