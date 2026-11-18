@@ -36,6 +36,6 @@ set "SAFE_CLOCK=%2"
 set "SAFE_CLOCK=%SAFE_CLOCK::=%"
 set "TASK_NAME=GeM Tender Auto Scan %DAY% %SAFE_CLOCK%"
 set "TASK_ACTION=cmd.exe /c ""%SCRIPT%"""
-schtasks /Create /TN "%TASK_NAME%" /TR "%TASK_ACTION%" /SC WEEKLY /D %DAY% /ST %CLOCK% /F
+schtasks /Create /TN "%TASK_NAME%" /TR "%TASK_ACTION%" /SC WEEKLY /D %DAY% /ST %CLOCK% /IT /F
 if errorlevel 1 echo WARNING: Could not create "%TASK_NAME%".
 exit /b 0
