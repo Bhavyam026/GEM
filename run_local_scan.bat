@@ -37,8 +37,14 @@ if errorlevel 1 (
   exit /b 13
 )
 
-for /f "delims=" %%A in ('git status --porcelain') do (
-  echo ERROR: Repository has uncommitted changes. Commit/stash them before scheduled scanning.
+git diff --quiet
+if errorlevel 1 (
+  echo ERROR: Tracked repository files have local changes. Commit or stash them before scanning.
+  exit /b 14
+)
+git diff --cached --quiet
+if errorlevel 1 (
+  echo ERROR: Tracked repository files are staged locally. Commit or unstage them before scanning.
   exit /b 14
 )
 
