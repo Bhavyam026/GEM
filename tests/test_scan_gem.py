@@ -41,6 +41,21 @@ class AdvanceSearchApiTests(unittest.TestCase):
         self.assertEqual(payload["page"], 2)
         self.assertEqual(payload["searchType"], "ministry-search")
 
+    def test_detail_endpoint_requests_original_pdf_bytes(self):
+        session = GeMSession()
+        captured = {}
+
+        def fake_request_bytes(url, data=None, headers=None, attempts=3):
+            captured["url"] = url
+            captured["headers"] = headers
+            return b"%PDF-1.4 test"
+
+        session.request_bytes = fake_request_bytes
+        result = session.detail("10040816")
+        self.assertEqual(result, b"%PDF-1.4 test")
+        self.assertEqual(captured["url"], "https://bidplus.gem.gov.in/showbidDocument/10040816")
+        self.assertIn("application/pdf", captured["headers"]["Accept"])
+
     def test_search_posts_form_payload_to_advance_search_endpoint(self):
         session = GeMSession()
         session.csrf = "fresh-session-token"
