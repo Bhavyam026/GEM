@@ -24,6 +24,11 @@ header{padding:28px max(20px,calc((100vw - 1200px)/2));border-bottom:1px solid v
 <div class="panel"><b>Coverage</b><p>Only priority organisations: NPCIL, BARC and AEES. Only these three buyers are searched by full official name. Buyer or consignee/delivery/installation evidence must match Mumbai, Palghar or Boisar.</p></div><div class="controls"><input id="search" placeholder="Search bid number, title, buyer…"><select id="category"><option value="">All categories</option><option>AMC & Maintenance</option><option>CCTV & Surveillance</option><option>Networking</option><option>Electrical</option><option>Fire Safety</option><option>IT Assets</option></select><select id="location"><option value="">Mumbai + Navi Mumbai + Palghar + Boisar</option><option>Mumbai</option><option>Navi Mumbai</option><option>Palghar</option><option>Boisar</option></select><select id="buyer"><option value="">All buyers</option><option>NPCIL</option><option>BARC</option><option>AEES</option></select></div>
 <nav class="tabs"><button class="tab active" data-tab="all">All Tenders</button><button class="tab" data-tab="new">New Tenders</button><button class="tab" data-tab="closing">Closing Soon</button><button class="tab" data-tab="priority">Priority Buyers</button></nav>
 <div class="tablewrap"><table><thead><tr><th>Bid / Tender</th><th>Buyer</th><th>Location</th><th>Category</th><th>Bid end</th><th>Added</th><th>Tender PDF / Documents</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="empty">Loading tender data…</td></tr></tbody></table></div>
+<section class="panel" id="pendingPanel" style="margin-top:18px">
+<h2 style="font-size:18px;margin:0 0 6px">Pending Verification</h2>
+<p>Potential leads from previously collected records. These are <b>not confirmed official GeM matches</b> and must not be treated as verified tenders until the official GeM bid and original PDF are checked.</p>
+<div class="tablewrap"><table><thead><tr><th>Bid / Tender</th><th>Buyer</th><th>Reported location</th><th>Category</th><th>Bid end</th><th>Status</th></tr></thead><tbody id="pendingRows"><tr><td colspan="6" class="empty">Loading pending leads…</td></tr></tbody></table></div>
+</section>
 <div class="foot" id="foot">New = added in last 7 days · Closing Soon = deadline within 7 days · Expired bids are hidden from active lists. Secondary listings are not official confirmation.</div>
 </main>
 <dialog id="pdfDialog"><div class="pdf-head"><b id="pdfTitle">Tender PDF</b><div><button type="button" onclick="closePdf()">Close</button></div></div><iframe id="pdfFrame" title="Tender PDF preview"></iframe></dialog>
@@ -42,6 +47,9 @@ function getFiltered(){let q=$("search").value.toLowerCase(),cat=$("category").v
 return tenders.filter(isQualified).filter(t=>{let text=[t.title,t.bid_number,t.buyer,t.location].join(" ").toLowerCase();let days=daysFromNow(t.bid_end_date);let activeBid=days===null||days>=0;return activeBid&&(!q||text.includes(q))&&(!cat||t.category===cat)&&(!loc||(t.location||"").toLowerCase().includes(loc.toLowerCase()))&&(!buy||(t.buyer||"").toUpperCase().includes(buy))&&(active!=="new"||isRecentlyAdded(t))&&(active!=="closing"||days!==null&&days>=0&&days<=7)&&(active!=="priority"||isPriorityBuyer(t));});}
 function render(){
   const list=getFiltered();
+  const pending=tenders.filter(t=>!isQualified(t)).filter(t=>{const d=daysFromNow(t.bid_end_date);return d===null||d>=0;});
+  $("pendingRows").innerHTML=pending.length?pending.map(t=>'<tr><td>'+esc(t.title||"Untitled bid")+'<br><small>'+esc(t.bid_number||"Bid number unavailable")+'</small></td><td>'+esc(t.buyer||"—")+'</td><td>'+esc(t.location||"—")+'</td><td>'+esc(t.category||"Other")+'</td><td>'+fmt(t.bid_end_date)+'</td><td><span class="tag priority">Pending official GeM + PDF verification</span></td></tr>').join(""):'<tr><td colspan="6" class="empty">No active unverified leads.</td></tr>';
+  $("pendingPanel").hidden=pending.length===0;
   $("rows").innerHTML=list.length?list.map(t=>{
     
     const localPdfPath=t.pdf_local_path||"";
