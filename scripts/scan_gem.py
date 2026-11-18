@@ -244,10 +244,10 @@ def location_evidence_text(*sources):
 def location_matches(text):
     low = clean(text).lower()
     matches = []
-    if re.search(r"\bmumbai\b|\b400[01]\d{2}\b", low):
-        matches.append("Mumbai")
     if re.search(r"\bnavi\s+mumbai\b|\b4007\d{2}\b", low):
         matches.append("Navi Mumbai")
+    elif re.search(r"\bmumbai\b|\b400[01]\d{2}\b", low):
+        matches.append("Mumbai")
     if re.search(r"\bpalghar\b|\b401\d{3}\b", low):
         matches.append("Palghar")
     if re.search(r"\bboisar\b", low):
