@@ -20,14 +20,14 @@ echo ============================================================
 echo [%DATE% %TIME%] Starting local GeM scan
 echo ============================================================
 
-where python >nul 2>&1
+where py >nul 2>&1
 if errorlevel 1 (
-  echo ERROR: Python was not found in PATH.
+  echo ERROR: Python Launcher (py.exe) was not found in PATH.
   exit /b 11
 )
-python -c "import sys; print(sys.version); sys.exit(0 if sys.version_info >= (3,8) and sys.version_info < (3,9) else 1)"
+py -3.8 -c "import sys; print(sys.version); sys.exit(0 if sys.version_info >= (3,8) and sys.version_info < (3,9) else 1)"
 if errorlevel 1 (
-  echo ERROR: This PC setup expects Python 3.8.x.
+  echo ERROR: Python 3.8.x was not found through "py -3.8".
   exit /b 12
 )
 
@@ -49,10 +49,10 @@ if errorlevel 1 (
   exit /b 15
 )
 
-python -c "import pypdf" >nul 2>&1
+py -3.8 -c "import pypdf" >nul 2>&1
 if errorlevel 1 (
   echo Installing scanner dependency...
-  python -m pip install -r requirements.txt
+  py -3.8 -m pip install -r requirements.txt
   if errorlevel 1 (
     echo ERROR: Could not install requirements.
     exit /b 16
