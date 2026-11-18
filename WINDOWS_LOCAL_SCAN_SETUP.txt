@@ -2,7 +2,7 @@ GeM LOCAL AUTO-SCAN — WINDOWS 7 / PYTHON 3.8
 
 WHAT IT DOES
 - Runs the existing official GeM Advance Search scanner for NPCIL, BARC and AEES.
-- Uses the existing pagination, buyer checks, official PDF byte verification, Mumbai/Palghar/Boisar PDF-location checks, and CCTV Q3-only rule.
+- Uses the existing pagination, buyer checks, official PDF byte verification, Mumbai/Navi Mumbai/Palghar/Boisar consignee or delivery-location checks, and CCTV Q3-only rule.
 - On a complete scan, updates data/tenders.json and official PDF copies.
 - On an incomplete scan, preserves previous tender data and publishes only the failed scan status.
 - Pushes data to the Bhavyam026/GEM GitHub repository. The Render static site is configured for automatic deploys from main, so a successful Git push should publish the updated data there.
