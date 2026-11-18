@@ -25,7 +25,7 @@ if errorlevel 1 (
   echo ERROR: Python Launcher (py.exe) was not found in PATH.
   exit /b 11
 )
-py -3.8 -c "import sys; print(sys.version); sys.exit(0 if sys.version_info >= (3,8) and sys.version_info < (3,9) else 1)"
+py -3.8 -c "import sys; print(sys.version); sys.exit(0 if sys.version_info[0]==3 and sys.version_info[1]==8 else 1)"
 if errorlevel 1 (
   echo ERROR: Python 3.8.x was not found through "py -3.8".
   exit /b 12
