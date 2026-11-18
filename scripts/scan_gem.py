@@ -261,15 +261,20 @@ class TextOnly(HTMLParser):
         super().__init__()
         self.parts = []
 
-    # GeM sometimes includes legacy conditional/marked-section declarations
-    # (for example <![if ...]>). Python 3.8's ParserBase does not reliably
-    # handle unknown marked-section names and can raise TypeError. Consume
-    # only the declaration wrapper, then continue parsing its HTML contents.
-    def parse_html_declaration(self, i):
+    # GeM may include legacy conditional declarations such as <![if !IE]>
+    # and <![endif]>. ParserBase routes these through parse_marked_section,
+    # not parse_html_declaration; unknown section names can crash Python 3.8.
+    # Preserve standard marked sections and skip only the legacy wrappers.
+    def parse_marked_section(self, i):
         if self.rawdata.startswith("<![", i):
             end = self.rawdata.find(">", i + 3)
-            return -1 if end < 0 else end + 1
-        return super().parse_html_declaration(i)
+            if end < 0:
+                return -1
+            declaration = self.rawdata[i + 3:end].strip()
+            section = declaration.split(None, 1)[0].upper() if declaration else ""
+            if section not in ("CDATA", "IGNORE", "INCLUDE", "RCDATA", "TEMP"):
+                return end + 1
+        return super().parse_marked_section(i)
 
     def error(self, message):
         return
