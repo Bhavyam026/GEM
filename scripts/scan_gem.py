@@ -260,6 +260,12 @@ class TextOnly(HTMLParser):
         super().__init__()
         self.parts = []
 
+    # Python 3.8's HTMLParser may call the legacy ParserBase.error()
+    # hook on malformed-but-recoverable portal HTML. Ignore that hook and
+    # continue extracting the remaining public text.
+    def error(self, message):
+        return
+
     def handle_data(self, data):
         if clean(data):
             self.parts.append(clean(data))
