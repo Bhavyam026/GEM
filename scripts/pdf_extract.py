@@ -16,6 +16,11 @@ class TenderLinks(HTMLParser):
         self.current_href = ""
         self.current_text = ""
 
+    # Python 3.8's HTMLParser can call this legacy ParserBase hook
+    # when GeM returns imperfect HTML. Continue parsing recoverable content.
+    def error(self, message):
+        return
+
     def _add(self, href: str):
         full = urljoin(self.base_url, href)
         if full.startswith("https://bidplus.gem.gov.in/") and full not in self.links:
