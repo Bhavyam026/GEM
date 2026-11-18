@@ -70,7 +70,16 @@ def extract_pdf_text(content: bytes) -> str:
     except ImportError as exc:
         raise RuntimeError("pypdf dependency is not installed") from exc
     reader = PdfReader(BytesIO(content), strict=False)
-    return " ".join((page.extract_text() or "") for page in reader.pages).strip()
+    parts = []
+    for page in reader.pages:
+        try:
+            page_text = page.extract_text(extraction_mode="layout") or ""
+        except TypeError:
+            # Compatibility fallback for older pypdf releases.
+            page_text = page.extract_text() or ""
+        if page_text.strip():
+            parts.append(page_text)
+    return "\n".join(parts).strip()
 
 
 def safe_pdf_filename(bid_number: str) -> str:
