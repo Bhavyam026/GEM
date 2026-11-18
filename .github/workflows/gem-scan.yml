@@ -1,18 +1,6 @@
 name: GeM Mumbai-Palghar-Boisar scan
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/gem-scan.yml"
-      - ".github/gem-scan-trigger.txt"
-      - "scripts/scan_gem.py"
-      - "scripts/pdf_extract.py"
-      - "tests/test_scan_gem.py"
-      - "requirements.txt"
   workflow_dispatch:
-  schedule:
-    # Every 2 hours from 09:00 to 17:00 IST, Monday-Saturday (03:30-11:30 UTC)
-    - cron: "30 3,5,7,9,11 * * 1-6"
 permissions:
   contents: write
   actions: write
