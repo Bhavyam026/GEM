@@ -21,9 +21,9 @@ from urllib.request import HTTPCookieProcessor, Request, build_opener
 from http.cookiejar import CookieJar
 
 try:
-    from scripts.pdf_extract import extract_detail_documents
+    from scripts.pdf_extract import extract_detail_documents, extract_pdf_text, save_original_pdf
 except ModuleNotFoundError:
-    from pdf_extract import extract_detail_documents
+    from pdf_extract import extract_detail_documents, extract_pdf_text, save_original_pdf
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -62,7 +62,14 @@ SEARCH_TERMS = {
     # Specific equipment/work categories take precedence over generic AMC/O&M wording.
     "CCTV & Surveillance": ("CCTV", "NVR", "DVR", "IP Camera", "Video Surveillance", "Surveillance Camera"),
     "Networking": ("Networking", "Network equipment", "Network", "LAN Switch", "Router", "Optical Fiber", "Network Switch", "Firewall"),
-    "Electrical": ("O&M of Electrical Work", "Electrical Work", "Electrical Panel", "PLC SCADA", "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture"),
+    "Electrical": (
+        "O&M of Electrical Work", "Electrical Work", "Electrical Panel", "PLC SCADA",
+        "Electrical Cable", "Earthing", "Electrical Wiring", "Lighting Fixture",
+        "Ceiling Fan", "Exhaust Fan", "LED Bulb", "Bulb", "Tube Light", "Street Light",
+        "Bulkhead Light", "Power Cable", "Copper Cable", "MCB", "MCCB", "Transformer",
+        "Electric Motor", "Switchgear", "Switch Gear", "LT Panel", "HT Panel",
+        "Distribution Panel", "Control Panel", "Electrical Maintenance",
+    ),
     "Fire Safety": ("Fire Alarm", "Fire Safety", "Fire Extinguisher", "Smoke Detector", "Fire Detection"),
     "IT Assets": ("Desktop Computer", "Laptop", "Computer Monitor", "Printer", "IT Equipment", "Server"),
     "AMC & Maintenance": ("Annual Maintenance Contract", "Annual Maintenance", "AMC", "Comprehensive Annual Maintenance", "Comprehensive Maintenance Contract", "CAMC", "CMC", "Operation and Maintenance", "O&M", "Maintenance Services", "Maintenance Contract"),
@@ -210,11 +217,37 @@ def office_name_for(*sources):
     return clean(match.group(1)).strip(" .|:-") if match else ""
 
 
+def location_evidence_text(*sources):
+    """Limit geography checks to consignee/delivery fields, not incidental PDF mentions."""
+    text = " ".join(clean(source) for source in sources if source)
+    low = text.lower()
+    markers = (
+        "consignees/reporting officer and quantity",
+        "delivery location",
+        "place of delivery",
+        "installation location",
+        "delivery address",
+        "ship to",
+    )
+    snippets = []
+    for marker in markers:
+        start = 0
+        while True:
+            pos = low.find(marker, start)
+            if pos < 0:
+                break
+            snippets.append(text[pos:pos + 1800])
+            start = pos + len(marker)
+    return " ".join(snippets)
+
+
 def location_matches(text):
     low = clean(text).lower()
     matches = []
     if re.search(r"\bmumbai\b|\b400[01]\d{2}\b", low):
         matches.append("Mumbai")
+    if re.search(r"\bnavi\s+mumbai\b|\b4007\d{2}\b", low):
+        matches.append("Navi Mumbai")
     if re.search(r"\bpalghar\b|\b401\d{3}\b", low):
         matches.append("Palghar")
     if re.search(r"\bboisar\b", low):
@@ -401,9 +434,10 @@ class GeMSession:
         }
 
     def detail(self, bid_id):
-        return self.request(
+        # GeM's public showbidDocument endpoint returns the original PDF bytes.
+        return self.request_bytes(
             BASE + "/showbidDocument/" + str(bid_id),
-            headers={"Accept": "text/html", "Referer": ALL_BIDS},
+            headers={"Accept": "application/pdf,*/*", "Referer": ALL_BIDS},
         )
 
 
@@ -453,20 +487,39 @@ def scan_buyer(session, buyer_key, counters):
             doc_text = json.dumps(doc, ensure_ascii=False)
 
             try:
-                detail_html = session.detail(bid_id)
+                detail_response = session.detail(bid_id)
                 counters["details_checked"] += 1
-                low_html = detail_html.lower()
-                if any(marker in low_html for marker in ("captcha", "access denied", "verify you are human")):
-                    raise AccessChallengeError("GeM displayed an access challenge on a bid detail page")
-                parser = TextOnly()
-                parser.feed(detail_html)
-                detail_text = parser.text()
-                pdf_texts, pdf_urls, pdf_errors, pdf_local_path = extract_detail_documents(
-                    detail_html, BASE + "/showbidDocument/" + bid_id, session, bid_number
-                )
-                counters["pdfs_checked"] += len(pdf_urls)
-                if pdf_errors:
-                    counters["warnings"].extend(pdf_errors[:2])
+                if isinstance(detail_response, bytes) and detail_response.startswith(b"%PDF"):
+                    # Save the exact official GeM response; do not re-render,
+                    # watermark, convert, or alter the original PDF.
+                    detail_url = BASE + "/showbidDocument/" + bid_id
+                    pdf_local_path = save_original_pdf(detail_response, bid_number)
+                    pdf_text = extract_pdf_text(detail_response)
+                    if not pdf_text:
+                        raise RuntimeError("Official GeM PDF contains no extractable text; manual review required")
+                    detail_text = pdf_text
+                    pdf_texts = [pdf_text]
+                    pdf_urls = [detail_url]
+                    counters["pdfs_checked"] += 1
+                else:
+                    detail_html = (
+                        detail_response.decode("utf-8", "replace")
+                        if isinstance(detail_response, bytes) else str(detail_response)
+                    )
+                    low_html = detail_html.lower()
+                    if any(marker in low_html for marker in ("captcha", "access denied", "verify you are human")):
+                        raise AccessChallengeError("GeM displayed an access challenge on a bid detail page")
+                    parser = TextOnly()
+                    parser.feed(detail_html)
+                    detail_text = parser.text()
+                    pdf_texts, pdf_urls, pdf_errors, pdf_local_path = extract_detail_documents(
+                        detail_html, BASE + "/showbidDocument/" + bid_id, session, bid_number
+                    )
+                    counters["pdfs_checked"] += len(pdf_urls)
+                    if pdf_errors:
+                        counters["warnings"].extend(pdf_errors[:2])
+                    if not pdf_urls:
+                        raise RuntimeError("Official bid detail response was not a PDF and contained no verified PDF link")
             except AccessChallengeError:
                 raise
             except Exception as exc:
@@ -501,7 +554,9 @@ def scan_buyer(session, buyer_key, counters):
                     continue
             # Geography must be evidenced by text extracted from the official
             # downloaded GeM PDF, not merely the listing/search result.
-            locations = location_matches(" ".join(pdf_texts))
+            office_name = office_name_for(detail_text, " ".join(pdf_texts))
+            location_evidence = location_evidence_text(" ".join(pdf_texts))
+            locations = location_matches(location_evidence + " " + office_name)
             if not category or not locations:
                 continue
 
@@ -510,7 +565,7 @@ def scan_buyer(session, buyer_key, counters):
                 "title": fields["title"] or fields["category_raw"] or "GeM tender",
                 "buyer": buyer_name,
                 "buyer_code": buyer_key,
-                "office_name": office_name_for(detail_text, " ".join(pdf_texts)),
+                "office_name": office_name,
                 "location": " / ".join(locations),
                 "category": category,
                 "gem_category_tier": q_tier,
