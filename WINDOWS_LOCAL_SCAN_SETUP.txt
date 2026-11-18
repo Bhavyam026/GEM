@@ -16,7 +16,7 @@ IMPORTANT
 
 SETUP
 1. Install/use Python 3.8.x and Git for Windows. Confirm both commands work in Command Prompt:
-     python --version
+     py -3.8 --version
      git --version
 2. Clone the repository if it is not already on this PC:
      git clone https://github.com/Bhavyam026/GEM.git
@@ -33,5 +33,5 @@ SETUP
 NOTES
 - The script pulls the latest main branch before each scan. Keep the local repository clean; it will stop if it finds uncommitted changes.
 - If GitHub authentication is not saved, the scheduled push will fail. Authenticate interactively once before enabling the schedule.
-- A successful Git push triggers the repository's GitHub Pages data deployment. Render's static site updates only if its GitHub auto-deploy setting is enabled.
+- A successful Git push triggers the repository's Render static site deployment. Render's static site updates only if its GitHub auto-deploy setting is enabled.
 - A successful GitHub push is not proof that the GeM scan succeeded. Check data/status.json and logs\local-scan.log.
