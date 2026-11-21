@@ -31,8 +31,10 @@ if errorlevel 1 goto wrong_python
 where git >nul 2>&1
 if errorlevel 1 goto no_git
 
-git -C "%REPO_DIR%" rev-parse --is-inside-work-tree >nul 2>&1
-if errorlevel 1 goto no_git_repo
+set "GIT_ROOT_CHECK="
+for /f "delims=" %%G in ('git -C "%REPO_DIR%" rev-parse --show-toplevel 2^>nul') do set "GIT_ROOT_CHECK=%%G"
+if not defined GIT_ROOT_CHECK goto no_git_repo
+echo Git repository verified: "%GIT_ROOT_CHECK%"
 
 git -C "%REPO_DIR%" diff --quiet HEAD --
 if errorlevel 2 goto git_check_failed
