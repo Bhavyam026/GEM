@@ -1,7 +1,8 @@
 @echo off
 setlocal EnableExtensions
 set "PYTHONDONTWRITEBYTECODE=1"
-cd /d "%~dp0"
+set "REPO_DIR=%~dp0"
+cd /d "%REPO_DIR%"
 if not exist ".git" goto no_repo
 if not exist "%USERPROFILE%\GeM-Logs" mkdir "%USERPROFILE%\GeM-Logs"
 set "LOG_FILE=%USERPROFILE%\GeM-Logs\local-scan.log"
@@ -20,6 +21,7 @@ exit /b 10
 echo ============================================================
 echo Starting local GeM scan
 echo ============================================================
+echo Repository: "%REPO_DIR%"
 
 where py >nul 2>&1
 if errorlevel 1 goto no_python
@@ -29,13 +31,18 @@ if errorlevel 1 goto wrong_python
 where git >nul 2>&1
 if errorlevel 1 goto no_git
 
-git diff --quiet
+git -C "%REPO_DIR%" rev-parse --is-inside-work-tree >nul 2>&1
+if errorlevel 1 goto no_git_repo
+
+git -C "%REPO_DIR%" diff --quiet HEAD --
+if errorlevel 2 goto git_check_failed
 if errorlevel 1 goto dirty_worktree
-git diff --cached --quiet
+git -C "%REPO_DIR%" diff --cached --quiet
+if errorlevel 2 goto git_check_failed
 if errorlevel 1 goto staged_worktree
 
 echo Updating repository from GitHub...
-git pull --rebase origin main
+git -C "%REPO_DIR%" pull --rebase origin main
 if errorlevel 1 goto pull_failed
 
 py -3.8 -c "import pypdf" >nul 2>&1
@@ -55,6 +62,14 @@ exit /b 12
 echo ERROR: Git was not found in PATH.
 exit /b 13
 
+:no_git_repo
+echo ERROR: Git could not identify the repository at "%REPO_DIR%".
+exit /b 19
+
+:git_check_failed
+echo ERROR: Git could not check the repository state. No scan was started.
+exit /b 20
+
 :dirty_worktree
 echo ERROR: Tracked repository files have local changes. Commit or stash them before scanning.
 exit /b 14
@@ -69,29 +84,30 @@ exit /b 15
 
 :install_requirements
 echo Installing scanner dependency...
-py -3.8 -m pip install -r requirements.txt
+py -3.8 -m pip install -r "%REPO_DIR%requirements.txt"
 if errorlevel 1 goto install_failed
 
 :run_scan
 echo Running official GeM Advance Search collector...
-py -3.8 scripts\scan_gem.py
+py -3.8 "%REPO_DIR%scripts\scan_gem.py"
 set "SCAN_RESULT=%ERRORLEVEL%"
 
 echo Staging tender data and scan status...
-git add -A data
-git diff --cached --quiet
+git -C "%REPO_DIR%" add -A data
+if errorlevel 1 goto add_failed
+git -C "%REPO_DIR%" diff --cached --quiet
 if not errorlevel 1 goto no_changes
 
-git config user.name >nul 2>&1
-if errorlevel 1 git config user.name "GeM Local Auto Scanner"
-git config user.email >nul 2>&1
-if errorlevel 1 git config user.email "gem-local-scanner@users.noreply.github.com"
+git -C "%REPO_DIR%" config user.name >nul 2>&1
+if errorlevel 1 git -C "%REPO_DIR%" config user.name "GeM Local Auto Scanner"
+git -C "%REPO_DIR%" config user.email >nul 2>&1
+if errorlevel 1 git -C "%REPO_DIR%" config user.email "gem-local-scanner@users.noreply.github.com"
 
-git commit -m "Update GeM tender scan data (local PC)"
+git -C "%REPO_DIR%" commit -m "Update GeM tender scan data (local PC)"
 if errorlevel 1 goto commit_failed
 
 echo Publishing scan data and status to GitHub...
-git push origin main
+git -C "%REPO_DIR%" push origin main
 if errorlevel 1 goto push_failed
 
 echo GitHub updated. The dashboard can now receive the published scan status and data.
@@ -103,6 +119,10 @@ exit /b %SCAN_RESULT%
 :no_changes
 echo No tender/status changes to publish.
 exit /b %SCAN_RESULT%
+
+:add_failed
+echo ERROR: Could not stage tender data.
+exit /b 21
 
 :install_failed
 echo ERROR: Could not install requirements.
