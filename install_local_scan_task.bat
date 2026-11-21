@@ -11,9 +11,16 @@ if not exist "run_local_scan.bat" (
   pause
   exit /b 11
 )
+if not exist "configure_local_scan_tasks.ps1" (
+  echo ERROR: configure_local_scan_tasks.ps1 is missing.
+  pause
+  exit /b 12
+)
 echo This creates GeM scan tasks at 09:00, 11:00, 13:00, 15:00 and 17:00,
 echo Monday through Saturday, using this Windows account.
-echo First run run_local_scan.bat manually and confirm it pushes successfully.
+echo Missed runs will be queued for the next time Windows is available.
+echo Sleep/hibernate wake-up will be enabled where supported.
+echo A fully shut-down PC cannot run tasks until it is powered on again.
 echo.
 choice /C YN /M "Continue and create the scheduled tasks"
 if errorlevel 2 exit /b 0
@@ -21,7 +28,16 @@ if errorlevel 2 exit /b 0
 set "SCRIPT=%~dp0run_local_scan.bat"
 for %%D in (MON TUE WED THU FRI SAT) do call :make_day %%D
 echo.
-echo Task creation finished. Open Task Scheduler to verify "GeM Tender Auto Scan" tasks.
+echo Applying missed-run and wake-from-sleep settings...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0configure_local_scan_tasks.ps1"
+if errorlevel 1 (
+  echo WARNING: Task settings could not all be updated. Check the PowerShell message above.
+  pause
+  exit /b 13
+)
+echo.
+echo Task creation and settings update finished.
+echo Verify "GeM Tender Auto Scan" tasks in Task Scheduler.
 pause
 exit /b 0
 
