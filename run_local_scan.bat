@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 set "PYTHONDONTWRITEBYTECODE=1"
-set "REPO_DIR=%~dp0"
+for %%I in ("%~dp0.") do set "REPO_DIR=%%~fI"
 cd /d "%REPO_DIR%"
 if not exist ".git" goto no_repo
 if not exist "%USERPROFILE%\GeM-Logs" mkdir "%USERPROFILE%\GeM-Logs"
