@@ -1,16 +1,16 @@
 {
   "last_scan_success": false,
-  "last_scan_ist": "18-Nov-2026 12:42:25 PM IST",
+  "last_scan_ist": "21-Nov-2026 09:51:35 AM IST",
   "last_success_ist": "",
   "buyers_scanned": [
     "NPCIL",
     "BARC",
     "AEES"
   ],
-  "pages_scanned": 0,
-  "records_seen": 0,
-  "details_checked": 0,
-  "pdfs_checked": 0,
+  "pages_scanned": 38,
+  "records_seen": 380,
+  "details_checked": 380,
+  "pdfs_checked": 378,
   "matches_saved": 0,
-  "warning": "Scan incomplete; previous tender data preserved. GeM network request failed after 3 attempts: <urlopen error [Errno 111] Connection refused>"
+  "warning": "Scan incomplete; previous tender data preserved. GeM returned HTTP 403; stopped without retrying or bypassing access controls"
 }
