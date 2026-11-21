@@ -33,12 +33,10 @@ if errorlevel 1 goto no_git
 
 echo Repository folder verified by .git marker. Git commands below will report any repository errors.
 
-git -C "%REPO_DIR%" diff --quiet HEAD --
-if errorlevel 2 goto git_check_failed
-if errorlevel 1 goto dirty_worktree
-git -C "%REPO_DIR%" diff --cached --quiet
-if errorlevel 2 goto git_check_failed
-if errorlevel 1 goto staged_worktree
+set "WORKTREE_STATUS=%TEMP%\gem_worktree_status.txt"
+git -C "%REPO_DIR%" status --porcelain --untracked-files=no > "%WORKTREE_STATUS%" 2>&1
+if errorlevel 1 goto git_check_failed
+for %%A in ("%WORKTREE_STATUS%") do if %%~zA GTR 0 goto dirty_worktree
 
 echo Updating repository from GitHub...
 git -C "%REPO_DIR%" pull --rebase origin main
@@ -94,8 +92,10 @@ set "SCAN_RESULT=%ERRORLEVEL%"
 echo Staging tender data and scan status...
 git -C "%REPO_DIR%" add -A data
 if errorlevel 1 goto add_failed
-git -C "%REPO_DIR%" diff --cached --quiet
-if not errorlevel 1 goto no_changes
+set "DATA_STATUS=%TEMP%\gem_data_status.txt"
+git -C "%REPO_DIR%" status --porcelain -- data > "%DATA_STATUS%" 2>&1
+if errorlevel 1 goto git_check_failed
+for %%A in ("%DATA_STATUS%") do if %%~zA EQU 0 goto no_changes
 
 git -C "%REPO_DIR%" config user.name >nul 2>&1
 if errorlevel 1 git -C "%REPO_DIR%" config user.name "GeM Local Auto Scanner"
